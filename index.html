@@ -1,0 +1,2123 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#0a0812">
+<title>Симулятор Мошенника</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+:root{--bg:#0a0812;--bg-card:#16121f;--bg-card2:#1e1a2a;--border:rgba(200,100,255,0.15);--border-hi:rgba(200,100,255,0.4);--text:#ede6f2;--muted:#8a7fa0;--dim:#5a4a6a;--gold:#ffb940;--green:#34d399;--red:#e63c3c;--blue:#60a5fa;--purple:#a855f7;--pink:#ec4899;--cyan:#22d3ee;}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:manipulation;overscroll-behavior:none;}
+#app{display:flex;flex-direction:column;height:100%;max-width:500px;margin:0 auto;position:relative;background:radial-gradient(circle at 50% 0%, rgba(168,85,247,0.08), transparent 50%),var(--bg);}
+#header{padding:calc(env(safe-area-inset-top,0px) + 8px) 12px 8px;border-bottom:1px solid var(--border);background:rgba(18,14,28,0.95);backdrop-filter:blur(20px);flex-shrink:0;z-index:10;}
+.brand-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;gap:8px;}
+.brand{font-size:15px;font-weight:900;letter-spacing:0.03em;background:linear-gradient(135deg,#a855f7,#ec4899);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.level-badge{font-size:11px;font-weight:800;color:var(--purple);background:rgba(168,85,247,0.15);border:1px solid rgba(168,85,247,0.4);padding:3px 9px;border-radius:20px;flex-shrink:0;}
+.stats-row{display:flex;gap:6px;margin-bottom:6px;}
+.stat-pill{flex:1;display:flex;align-items:center;gap:4px;font-size:11px;font-weight:800;background:rgba(255,255,255,0.04);border-radius:8px;padding:5px 8px;border:1px solid var(--border);min-width:0;overflow:hidden;white-space:nowrap;font-variant-numeric:tabular-nums;}
+.stat-pill.money{color:var(--gold);}
+.stat-pill.clean{color:var(--green);}
+.stat-pill.energy{color:var(--cyan);}
+.stat-pill.suspicion{color:var(--red);}
+.stat-pill .val{overflow:hidden;text-overflow:ellipsis;}
+.xp-bar{height:4px;background:rgba(0,0,0,0.5);border-radius:2px;overflow:hidden;margin-top:4px;border:1px solid var(--border);}
+.xp-fill{height:100%;background:linear-gradient(90deg,var(--cyan),var(--purple));transform-origin:left;transition:transform 0.5s;border-radius:2px;}
+.bars-row{display:flex;gap:6px;font-size:10px;}
+.bar-wrap{flex:1;display:flex;align-items:center;gap:4px;}
+.bar-label{color:var(--muted);font-weight:700;font-size:9px;min-width:22px;}
+.bar{flex:1;height:5px;background:rgba(0,0,0,0.5);border-radius:3px;overflow:hidden;border:1px solid var(--border);}
+.bar-fill{height:100%;border-radius:3px;transform-origin:left;transition:transform 0.3s;}
+.bar-fill.energy{background:linear-gradient(90deg,#22d3ee,#06b6d4);}
+.bar-fill.suspicion{background:linear-gradient(90deg,#fbbf24,#e63c3c);}
+#content{flex:1;overflow-y:auto;padding:12px;-webkit-overflow-scrolling:touch;}
+.tab{display:none;}
+.tab.active{display:block;animation:fslide 0.25s ease;}
+@keyframes fslide{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+.hero{background:linear-gradient(135deg,rgba(168,85,247,0.15),rgba(236,72,153,0.05));border:1px solid rgba(168,85,247,0.3);border-radius:14px;padding:16px;margin-bottom:12px;text-align:center;}
+.hero .emoji{font-size:44px;filter:drop-shadow(0 4px 20px rgba(168,85,247,0.6));}
+.hero .title{font-size:16px;font-weight:900;color:var(--purple);margin-top:6px;}
+.hero .sub{font-size:11px;color:var(--muted);margin-top:4px;line-height:1.4;}
+.hero.hack{background:linear-gradient(135deg,rgba(34,211,238,0.15),rgba(96,165,250,0.05));border-color:rgba(34,211,238,0.3);}
+.hero.hack .title{color:var(--cyan);}
+.section-h{font-size:11px;color:var(--muted);font-weight:800;text-transform:uppercase;letter-spacing:0.1em;margin:14px 0 8px 4px;}
+.filter-tabs{display:flex;gap:6px;margin-bottom:10px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none;}
+.filter-tabs::-webkit-scrollbar{display:none;}
+.filter-btn{flex-shrink:0;padding:7px 14px;border-radius:20px;background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--muted);font-size:11px;font-weight:800;font-family:inherit;cursor:pointer;white-space:nowrap;}
+.filter-btn.active{background:rgba(168,85,247,0.2);border-color:var(--purple);color:var(--purple);}
+.filter-btn:active{transform:scale(0.96);}
+
+.target-list{display:flex;flex-direction:column;gap:8px;}
+.target-card{background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:12px;transition:all 0.15s;position:relative;overflow:hidden;}
+.target-card.locked{opacity:0.55;}
+.target-card.locked::after{content:'🔒 Ур. ' attr(data-req);position:absolute;top:8px;right:8px;font-size:10px;font-weight:800;color:var(--gold);background:rgba(255,185,64,0.15);padding:3px 8px;border-radius:8px;border:1px solid rgba(255,185,64,0.4);}
+.target-card.done{opacity:0.7;background:linear-gradient(135deg,rgba(52,211,153,0.05),var(--bg-card));border-color:rgba(52,211,153,0.3);}
+.t-header{display:flex;align-items:center;gap:10px;margin-bottom:6px;}
+.t-avatar{width:44px;height:44px;border-radius:50%;flex-shrink:0;background:linear-gradient(135deg,var(--c,#60a5fa),rgba(0,0,0,0.3));display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:inset 0 1px 0 rgba(255,255,255,0.3);}
+.t-info{flex:1;min-width:0;}
+.t-name{font-size:13px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.t-age{font-size:10px;color:var(--muted);font-weight:600;}
+.t-loot{font-size:13px;font-weight:900;color:var(--gold);text-align:right;white-space:nowrap;}
+.t-loot small{display:block;font-size:9px;color:var(--muted);font-weight:700;}
+.t-story{font-size:10px;color:var(--muted);line-height:1.4;padding:6px 9px;background:rgba(0,0,0,0.25);border-radius:8px;margin-bottom:6px;font-style:italic;}
+.t-meta{display:flex;justify-content:space-between;font-size:10px;color:var(--dim);font-weight:700;margin-bottom:6px;}
+.t-action{width:100%;padding:9px;border-radius:9px;font-family:inherit;font-size:11px;font-weight:800;cursor:pointer;border:none;background:linear-gradient(180deg,rgba(168,85,247,0.25),rgba(168,85,247,0.15));color:var(--purple);transition:all 0.15s;}
+.t-action:active{transform:scale(0.97);}
+.t-action.disabled{opacity:0.3;pointer-events:none;}
+
+.hack-list{display:flex;flex-direction:column;gap:8px;}
+.hack-card{background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:14px;transition:all 0.15s;cursor:pointer;position:relative;overflow:hidden;}
+.hack-card.locked{opacity:0.4;pointer-events:none;}
+.hack-card.locked::after{content:'🔒 Ур. ' attr(data-req);position:absolute;top:8px;right:8px;font-size:10px;font-weight:800;color:var(--gold);background:rgba(255,185,64,0.15);padding:3px 8px;border-radius:8px;border:1px solid rgba(255,185,64,0.4);}
+.hack-card:not(.locked):active{transform:scale(0.98);border-color:var(--cyan);background:rgba(34,211,238,0.05);}
+.hack-header{display:flex;align-items:center;gap:12px;margin-bottom:8px;}
+.hack-icon{width:44px;height:44px;border-radius:10px;flex-shrink:0;background:linear-gradient(135deg,var(--c,#22d3ee),rgba(0,0,0,0.4));display:flex;align-items:center;justify-content:center;font-size:24px;box-shadow:inset 0 1px 0 rgba(255,255,255,0.3);}
+.hack-info{flex:1;min-width:0;}
+.hack-name{font-size:14px;font-weight:800;}
+.hack-def{font-size:10px;color:var(--muted);margin-top:2px;}
+.hack-def span{color:var(--cyan);font-weight:900;}
+.hack-reward{font-size:14px;font-weight:900;color:var(--green);text-align:right;white-space:nowrap;}
+.hack-reward small{display:block;font-size:9px;color:var(--muted);font-weight:700;}
+.hack-detail{font-size:10px;color:var(--muted);padding:8px 10px;background:rgba(0,0,0,0.25);border-radius:8px;line-height:1.4;display:flex;justify-content:space-between;}
+
+.bp-stage{position:fixed;inset:0;background:linear-gradient(180deg,#050810,#0a0812);z-index:260;display:flex;flex-direction:column;max-width:500px;margin:0 auto;padding:calc(env(safe-area-inset-top,0px) + 12px) 12px 16px;overflow-y:auto;}
+.bp-hud{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:rgba(0,0,0,0.5);border:1px solid rgba(34,211,238,0.3);border-radius:12px;margin-bottom:12px;}
+.bp-hud-label{font-size:10px;color:var(--muted);font-weight:800;text-transform:uppercase;letter-spacing:0.08em;}
+.bp-hud-val{font-size:15px;font-weight:900;color:var(--cyan);margin-top:2px;font-variant-numeric:tabular-nums;}
+.bp-timer{text-align:center;font-size:26px;font-weight:900;color:var(--red);font-variant-numeric:tabular-nums;}
+.bp-timer.warn{animation:bpTimerPulse 0.5s infinite;}
+@keyframes bpTimerPulse{0%,100%{color:var(--red);}50%{color:var(--gold);}}
+.bp-targets{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px;}
+.bp-target{display:flex;gap:3px;padding:6px 8px;background:rgba(0,0,0,0.4);border:1px solid var(--border);border-radius:8px;transition:all 0.3s;}
+.bp-target.done{opacity:0.4;background:rgba(52,211,153,0.15);border-color:var(--green);}
+.bp-target.current{border-color:var(--cyan);box-shadow:0 0 15px rgba(34,211,238,0.5);background:rgba(34,211,238,0.1);}
+.bp-seq-sym{padding:3px 6px;background:rgba(255,255,255,0.08);border-radius:4px;font-family:monospace;font-weight:800;font-size:12px;color:var(--cyan);}
+.bp-target.done .bp-seq-sym{color:var(--green);text-decoration:line-through;background:rgba(52,211,153,0.1);}
+.bp-matrix{display:grid;gap:4px;margin-bottom:12px;padding:8px;background:rgba(0,0,0,0.5);border-radius:12px;border:1px solid rgba(34,211,238,0.2);}
+.bp-cell{padding:12px 4px;background:var(--bg-card);border:1px solid var(--border);border-radius:6px;font-family:monospace;font-size:13px;font-weight:800;color:var(--dim);cursor:pointer;transition:all 0.15s;display:flex;align-items:center;justify-content:center;position:relative;aspect-ratio:1;}
+.bp-cell.active{background:rgba(34,211,238,0.15);border-color:var(--cyan);color:var(--cyan);box-shadow:0 0 12px rgba(34,211,238,0.4);}
+.bp-cell.active:active{transform:scale(0.92);}
+.bp-cell.used{background:rgba(168,85,247,0.15);border-color:var(--purple);color:var(--purple);cursor:not-allowed;}
+.bp-cell:not(.active):not(.used){cursor:not-allowed;opacity:0.5;}
+.bp-buffer{display:flex;gap:4px;justify-content:center;min-height:28px;margin-bottom:12px;flex-wrap:wrap;}
+.bp-buf-sym{padding:4px 8px;background:rgba(168,85,247,0.2);border:1px solid var(--purple);border-radius:5px;font-family:monospace;font-weight:800;font-size:12px;color:var(--purple);}
+.bp-buf-empty{font-size:11px;color:var(--dim);text-align:center;font-style:italic;}
+.bp-hint{text-align:center;font-size:11px;color:var(--muted);padding:10px;background:rgba(34,211,238,0.05);border-radius:10px;line-height:1.4;margin-bottom:8px;}
+.bp-btn{padding:14px;border:none;border-radius:12px;font-family:inherit;font-size:14px;font-weight:900;cursor:pointer;transition:transform 0.1s;}
+.bp-btn.danger{background:linear-gradient(180deg,#f87171,#dc2626);color:white;width:100%;}
+.bp-btn:active{transform:scale(0.97);}
+
+.card{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:8px;}
+.upg-head{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+.upg-icon{font-size:26px;flex-shrink:0;}
+.upg-title{flex:1;min-width:0;}
+.upg-name{font-size:13px;font-weight:800;}
+.upg-lvl{font-size:10px;color:var(--muted);margin-top:2px;}
+.upg-desc{font-size:10px;color:var(--muted);margin-top:4px;line-height:1.4;font-style:italic;}
+.upg-buy{width:100%;padding:10px;border:none;border-radius:10px;font-family:inherit;font-size:12px;font-weight:900;cursor:pointer;background:linear-gradient(180deg,#c084fc,var(--purple));color:#0a0505;transition:transform 0.1s;}
+.upg-buy:active{transform:scale(0.97);}
+.upg-buy:disabled{background:rgba(255,255,255,0.05);color:var(--dim);cursor:not-allowed;}
+.upg-buy.maxed{background:rgba(52,211,153,0.3);color:var(--green);cursor:default;}
+
+.history-item{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;margin-bottom:6px;font-size:12px;}
+.h-icon{font-size:20px;}
+.h-info{flex:1;min-width:0;}
+.h-name{font-size:12px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.h-meta{font-size:10px;color:var(--muted);margin-top:2px;font-style:italic;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.h-loot{font-size:12px;font-weight:900;color:var(--gold);text-align:right;font-variant-numeric:tabular-nums;}
+.h-loot.zero{color:var(--red);}
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;}
+.stat-box{background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:10px 12px;}
+.stat-label{font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;}
+.stat-val{font-size:16px;font-weight:900;color:var(--gold);margin-top:2px;font-variant-numeric:tabular-nums;}
+.stat-val.green{color:var(--green);}
+.stat-val.red{color:var(--red);}
+.stat-val.cyan{color:var(--cyan);}
+.achv-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;}
+.achv-box{background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:8px 10px;font-size:11px;}
+.achv-box.unlocked{background:linear-gradient(135deg,rgba(168,85,247,0.15),var(--bg-card));border-color:rgba(168,85,247,0.5);}
+.achv-box.locked{opacity:0.4;}
+.achv-emoji{font-size:18px;}
+.achv-name{font-weight:700;margin-top:2px;}
+
+#tabbar{display:flex;border-top:1px solid var(--border);background:rgba(18,14,28,0.95);backdrop-filter:blur(20px);padding-bottom:env(safe-area-inset-bottom,0);flex-shrink:0;}
+.tab-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 2px 10px;background:transparent;border:none;color:var(--muted);font-family:inherit;font-size:9px;font-weight:700;cursor:pointer;transition:color 0.2s;position:relative;}
+.tab-btn .ti{font-size:20px;transition:transform 0.2s;filter:grayscale(1) opacity(0.5);}
+.tab-btn.active{color:var(--purple);}
+.tab-btn.active .ti{transform:scale(1.15);filter:none;filter:drop-shadow(0 0 8px rgba(168,85,247,0.6));}
+.tab-btn.active::after{content:'';position:absolute;top:0;left:25%;right:25%;height:2px;background:linear-gradient(90deg,transparent,var(--purple),transparent);}
+
+.call-screen{position:fixed;inset:0;background:linear-gradient(180deg,#0a0812,#150f24);z-index:250;display:flex;flex-direction:column;max-width:500px;margin:0 auto;padding:calc(env(safe-area-inset-top,0px) + 20px) 16px 20px;overflow-y:auto;}
+.call-header{display:flex;align-items:center;gap:12px;padding:14px;background:rgba(0,0,0,0.4);border-radius:16px;margin-bottom:14px;}
+.call-avatar{width:56px;height:56px;border-radius:50%;flex-shrink:0;background:linear-gradient(135deg,var(--c,#60a5fa),rgba(0,0,0,0.3));display:flex;align-items:center;justify-content:center;font-size:28px;box-shadow:inset 0 1px 0 rgba(255,255,255,0.3),0 0 30px var(--c);}
+.call-avatar.ringing{animation:ringPulse 1s infinite;}
+@keyframes ringPulse{0%,100%{box-shadow:0 0 30px var(--c);}50%{box-shadow:0 0 60px var(--c),0 0 80px var(--c);}}
+.call-info{flex:1;min-width:0;}
+.call-name{font-size:16px;font-weight:900;}
+.call-status{font-size:11px;color:var(--green);margin-top:2px;font-weight:700;display:flex;align-items:center;gap:4px;}
+.call-status .dot{width:6px;height:6px;background:var(--green);border-radius:50%;animation:dotPulse 1.2s infinite;}
+@keyframes dotPulse{0%,100%{opacity:1;}50%{opacity:0.3;}}
+.call-timer{font-size:12px;color:var(--muted);font-weight:800;font-variant-numeric:tabular-nums;}
+.trust-bar-wrap{display:flex;align-items:center;gap:8px;padding:0 4px 8px;font-size:10px;font-weight:800;color:var(--muted);}
+.trust-bar{flex:1;height:8px;background:rgba(0,0,0,0.5);border-radius:4px;overflow:hidden;border:1px solid var(--border);}
+.trust-fill{height:100%;background:linear-gradient(90deg,#e63c3c,#fbbf24,#34d399);transform-origin:left;transition:transform 0.4s;border-radius:4px;}
+.trust-val{color:var(--gold);font-variant-numeric:tabular-nums;min-width:28px;}
+.chat-log{flex:1;background:rgba(0,0,0,0.3);border-radius:16px;padding:14px;overflow-y:auto;margin-bottom:12px;display:flex;flex-direction:column;gap:10px;min-height:200px;}
+.chat-msg{max-width:85%;padding:10px 14px;border-radius:14px;font-size:13px;line-height:1.4;font-weight:500;animation:msgIn 0.3s ease;}
+@keyframes msgIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+.chat-msg.them{background:rgba(60,50,80,0.7);color:var(--text);align-self:flex-start;border-bottom-left-radius:4px;}
+.chat-msg.me{background:linear-gradient(135deg,var(--purple),#8b3dd4);color:white;align-self:flex-end;border-bottom-right-radius:4px;font-weight:600;}
+.chat-msg.typing{background:rgba(60,50,80,0.7);align-self:flex-start;padding:14px 18px;border-radius:14px;border-bottom-left-radius:4px;}
+.chat-msg.typing::after{content:'●●●';font-size:10px;color:var(--muted);letter-spacing:3px;animation:typingAnim 1.2s infinite;}
+@keyframes typingAnim{0%,100%{opacity:0.3;}50%{opacity:1;}}
+.chat-msg.system{align-self:center;background:rgba(230,60,60,0.15);color:#ff9999;font-size:11px;font-weight:700;padding:6px 12px;border-radius:8px;max-width:none;text-align:center;}
+.choices-wrap{display:flex;flex-direction:column;gap:8px;}
+.choice-btn{padding:14px 16px;background:var(--bg-card);border:1px solid var(--border-hi);border-radius:14px;color:var(--text);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;text-align:left;line-height:1.35;transition:all 0.15s;}
+.choice-btn:active{transform:scale(0.98);background:rgba(168,85,247,0.15);border-color:var(--purple);}
+
+.final-stage{position:fixed;inset:0;background:linear-gradient(180deg,#0a0812,#150f24);z-index:260;display:flex;flex-direction:column;max-width:500px;margin:0 auto;padding:calc(env(safe-area-inset-top,0px) + 20px) 16px 20px;overflow-y:auto;}
+.final-title{text-align:center;font-size:18px;font-weight:900;color:var(--purple);margin-bottom:6px;}
+.final-sub{text-align:center;font-size:12px;color:var(--muted);margin-bottom:20px;line-height:1.5;}
+.mg-code-display{display:flex;gap:8px;justify-content:center;margin:24px 0;}
+.code-digit{width:48px;height:64px;background:rgba(0,0,0,0.4);border:2px solid var(--border);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:900;color:var(--purple);}
+.code-digit.active{border-color:var(--purple);box-shadow:0 0 20px var(--purple);}
+.code-digit.filled{border-color:var(--green);color:var(--green);}
+.mg-numpad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:20px 0;}
+.numpad-btn{padding:20px;background:var(--bg-card);border:1px solid var(--border);border-radius:14px;font-size:22px;font-weight:900;color:var(--text);cursor:pointer;font-family:inherit;transition:all 0.1s;}
+.numpad-btn:active{transform:scale(0.94);background:rgba(168,85,247,0.2);border-color:var(--purple);}
+.transfer-screen{background:linear-gradient(135deg,rgba(96,165,250,0.15),rgba(34,211,238,0.05));border:1px solid rgba(96,165,250,0.4);border-radius:16px;padding:20px;margin:16px 0;text-align:center;}
+.transfer-title{font-size:12px;color:var(--muted);font-weight:800;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px;}
+.transfer-amount{font-size:32px;font-weight:900;color:var(--blue);font-variant-numeric:tabular-nums;margin:8px 0;}
+.transfer-card{font-size:14px;color:var(--muted);font-weight:700;margin-bottom:16px;font-variant-numeric:tabular-nums;}
+.transfer-tap{padding:28px;background:linear-gradient(180deg,#4ade80,#22c55e);color:#051b0d;border:none;border-radius:16px;font-family:inherit;font-size:18px;font-weight:900;cursor:pointer;width:100%;box-shadow:0 6px 24px rgba(52,211,153,0.5);transition:transform 0.05s;}
+.transfer-tap:active{transform:scale(0.94);}
+.transfer-tap .hint{display:block;font-size:11px;font-weight:700;opacity:0.7;margin-top:4px;}
+.mg-timer{text-align:center;font-size:28px;font-weight:900;color:var(--purple);font-variant-numeric:tabular-nums;margin:10px 0;}
+
+.result-screen{text-align:center;padding:30px 20px;}
+.result-emoji{font-size:80px;margin-bottom:16px;display:block;animation:resultPop 0.5s cubic-bezier(0.2,1.5,0.5,1);}
+@keyframes resultPop{from{transform:scale(0);}to{transform:scale(1);}}
+.result-title{font-size:24px;font-weight:900;margin-bottom:8px;}
+.result-title.win{color:var(--green);text-shadow:0 0 30px rgba(52,211,153,0.5);}
+.result-title.lose{color:var(--red);text-shadow:0 0 30px rgba(230,60,60,0.5);}
+.result-sub{font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.5;}
+.result-loot{font-size:36px;font-weight:900;color:var(--gold);margin:16px 0;text-shadow:0 0 40px rgba(255,185,64,0.6);font-variant-numeric:tabular-nums;animation:lootPop 0.7s cubic-bezier(0.2,1.5,0.5,1) 0.2s both;}
+@keyframes lootPop{from{transform:scale(0.3);opacity:0;}to{transform:scale(1);opacity:1;}}
+.result-loot.zero{color:var(--red);text-shadow:0 0 40px rgba(230,60,60,0.6);}
+.result-quote{font-style:italic;font-size:13px;color:var(--muted);padding:14px;background:rgba(0,0,0,0.3);border-radius:12px;margin:16px 0;line-height:1.5;border-left:3px solid var(--purple);}
+.result-continue{width:100%;padding:16px;border:none;border-radius:14px;font-family:inherit;font-size:15px;font-weight:900;cursor:pointer;background:linear-gradient(180deg,#c084fc,var(--purple));color:#0a0505;transition:transform 0.1s;}
+.result-continue:active{transform:scale(0.97);}
+
+.toast{position:fixed;top:120px;left:50%;transform:translateX(-50%);background:rgba(25,15,30,0.97);color:var(--text);padding:11px 18px;border-radius:10px;font-size:12px;font-weight:700;z-index:300;border:1px solid var(--purple);box-shadow:0 12px 40px rgba(0,0,0,0.7);animation:toastA 3s forwards;max-width:88vw;text-align:center;}
+.toast.warn{border-color:var(--red);}
+.toast.success{border-color:var(--green);}
+@keyframes toastA{0%{opacity:0;transform:translate(-50%,-20px);}10%{opacity:1;transform:translate(-50%,0);}85%{opacity:1;transform:translate(-50%,0);}100%{opacity:0;transform:translate(-50%,-10px);}}
+.disclaimer{font-size:10px;color:var(--dim);text-align:center;padding:8px 12px 4px;line-height:1.4;font-style:italic;border-top:1px solid var(--border);margin-top:10px;}
+.disclaimer strong{color:var(--red);}
+.arrest-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.97);display:flex;align-items:center;justify-content:center;z-index:400;padding:20px;animation:fadeIn 0.4s;}
+@keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+.arrest-card{background:linear-gradient(135deg,#3a0808,#1a0505);border:2px solid var(--red);border-radius:20px;padding:24px;text-align:center;max-width:340px;box-shadow:0 0 80px rgba(230,60,60,0.5);}
+.arrest-emoji{font-size:70px;filter:drop-shadow(0 0 30px var(--red));margin-bottom:12px;}
+.arrest-title{font-size:22px;font-weight:900;color:var(--red);margin-bottom:8px;}
+.arrest-text{font-size:12px;color:var(--muted);line-height:1.5;margin-bottom:14px;}
+.arrest-btn{width:100%;padding:14px;border:none;border-radius:12px;font-family:inherit;font-size:14px;font-weight:900;cursor:pointer;background:linear-gradient(180deg,#c084fc,var(--purple));color:#0a0505;}
+.victory-card{background:linear-gradient(135deg,#2a1030,#0a0512);border:2px solid var(--gold);border-radius:22px;padding:26px 22px;text-align:center;max-width:360px;box-shadow:0 24px 80px rgba(255,185,64,0.5);animation:popIn 0.5s;}
+@keyframes popIn{from{transform:scale(0.85);opacity:0;}to{transform:scale(1);opacity:1;}}
+.victory-emoji{font-size:66px;filter:drop-shadow(0 4px 20px var(--gold));margin-bottom:12px;}
+.victory-title{font-size:22px;font-weight:900;color:var(--gold);margin-bottom:8px;}
+.victory-sub{font-size:12px;color:var(--muted);line-height:1.5;margin-bottom:14px;}
+.victory-stats{background:rgba(255,185,64,0.08);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:14px;font-size:12px;}
+.victory-stats div{margin-bottom:6px;color:var(--muted);}
+.victory-stats strong{color:var(--gold);font-size:16px;display:block;margin-top:2px;}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <header id="header">
+    <div class="brand-row">
+      <div class="brand">📞 МОШЕННИК</div>
+      <div class="level-badge">Ур. <span id="levelVal">1</span></div>
+    </div>
+    <div class="stats-row">
+      <div class="stat-pill money">💵<span class="val" id="moneyVal">1K</span></div>
+      <div class="stat-pill clean">🏦<span class="val" id="cleanVal">0</span></div>
+      <div class="stat-pill energy">⚡<span class="val" id="energyVal">100</span></div>
+      <div class="stat-pill suspicion">👁️<span class="val" id="suspVal">0</span></div>
+    </div>
+    <div class="xp-bar"><div class="xp-fill" id="xpBar" style="transform:scaleX(0)"></div></div>
+    <div class="bars-row" style="margin-top:6px;">
+      <div class="bar-wrap"><span class="bar-label">Энер</span><div class="bar"><div class="bar-fill energy" id="energyBar"></div></div></div>
+      <div class="bar-wrap"><span class="bar-label">Подозр</span><div class="bar"><div class="bar-fill suspicion" id="suspBar"></div></div></div>
+    </div>
+  </header>
+
+  <main id="content">
+    <section class="tab active" id="tab-calls">
+      <div class="hero">
+        <div class="emoji">📞</div>
+        <div class="title">Колл-центр</div>
+        <div class="sub" id="callsSub">Загрузка...</div>
+      </div>
+      <div class="filter-tabs" id="filterTabs">
+        <button class="filter-btn active" data-filter="available">🎯 Доступные</button>
+        <button class="filter-btn" data-filter="done">✅ Готово</button>
+        <button class="filter-btn" data-filter="locked">🔒 Заблокированные</button>
+        <button class="filter-btn" data-filter="all">📋 Все</button>
+      </div>
+      <div class="target-list" id="targetList"></div>
+      <div class="section-h">📜 Журнал</div>
+      <div id="historyList"></div>
+      <div class="disclaimer">
+        ⚠️ <strong>Игра-пародия.</strong> Реальные мошенники — преступники.<br>
+        Если вам звонят «из банка» — кладите трубку и перезванивайте по номеру с карты.
+      </div>
+    </section>
+
+    <section class="tab" id="tab-hack">
+      <div class="hero hack">
+        <div class="emoji">💻</div>
+        <div class="title">Breach Protocol</div>
+        <div class="sub">Взлом устройств в стиле Cyberpunk 2077</div>
+      </div>
+      <div class="section-h">🖥️ Устройства</div>
+      <div class="hack-list" id="hackList"></div>
+    </section>
+
+    <section class="tab" id="tab-upgrades">
+      <div class="section-h">⚙️ Оборудование</div>
+      <div id="upgradesList"></div>
+    </section>
+
+    <section class="tab" id="tab-laundry">
+      <div class="section-h">💰 Отмывание</div>
+      <div id="laundryContent"></div>
+    </section>
+
+    <section class="tab" id="tab-profile">
+      <div id="profileContent"></div>
+    </section>
+  </main>
+
+  <nav id="tabbar">
+    <button class="tab-btn active" data-tab="calls"><span class="ti">📞</span><span>Звонки</span></button>
+    <button class="tab-btn" data-tab="hack"><span class="ti">💻</span><span>Взлом</span></button>
+    <button class="tab-btn" data-tab="upgrades"><span class="ti">⚙️</span><span>Скилл</span></button>
+    <button class="tab-btn" data-tab="laundry"><span class="ti">💰</span><span>Отмыв</span></button>
+    <button class="tab-btn" data-tab="profile"><span class="ti">📊</span><span>Профиль</span></button>
+  </nav>
+</div>
+
+<script>
+(() => {
+'use strict';
+
+const START_MONEY = 1000;
+const GOAL_CLEAN = 100_000_000;
+const SAVE_KEY = 'scammer_save_v5';
+
+/* ==================== АРХЕТИПЫ (27 штук) ==================== */
+const ARCHETYPES = [
+  // 1. ПЕНСИОНЕРКА
+  { id:'pensioner', icon:'👵', c:'#f472b6', gender:'f', age:[68,85], diff:[1,2], minTrust:40, loot:30000, scheme:'code', unlock:0,
+    stories:['Одинокая пенсионерка. {rel} {relName} недавно попал в ДТП. Плохо слышит.',
+             'Пожилая женщина. Живёт одна, часто болеет, никого не хочет напрягать.',
+             'Бабушка. Обожает {relName}, готова на всё ради {rel}.',
+             'Пенсионерка. Муж умер, осталась одна с котом и телевизором.'],
+    opening:'Алло?.. Кто это? Я вас плохо слышу!',
+    steps:[
+      { them:'Кто это? Я никого не жду.', ch:[
+        { t:'Здравствуйте! Из службы безопасности банка. По вашей карте попытка списания.', trust:15 },
+        { t:'Бабушка, это ваш {rel} {relName}! Мне срочно нужны деньги!', trust:-25, f:1 },
+        { t:'Из поликлиники беспокоят. Уточнить данные.', trust:-10, f:1 }
+      ]},
+      { them:'Из банка? Ой, что случилось? У меня пенсия там...', ch:[
+        { t:'Не волнуйтесь! Уже заблокировали. Нужно ваше подтверждение.', trust:20 },
+        { t:'Срочно переведите все деньги на безопасный счёт!', trust:-15, f:1 },
+        { t:'Всё плохо. Назовите код из СМС.', trust:-20, f:1 }
+      ]},
+      { them:'А как убедиться, что вы из банка? {relName} говорил, мошенников много...', ch:[
+        { t:'Правильно! Назовите номер карты — продиктую последние 4 цифры.', trust:15 },
+        { t:'Я же с официального номера!', trust:-5, f:1 },
+        { t:'Вы сами нам звонили вчера! Забыли?', trust:10 }
+      ]},
+      { them:'Ой... {relName} надо бы перезвонить...', ch:[
+        { t:'Конечно! Но у нас 10 минут до блокировки.', trust:15 },
+        { t:'Не смейте никому звонить!', trust:-30, f:1 },
+        { t:'Хорошо. Пусть {relName} перезвонит по номеру на карте.', trust:20 }
+      ]}
+    ],
+    fIntro:'{name} доверяет. Забираем код из СМС.',
+    winQ:'Ой, спасибо! Я же не знала!',
+    failQ:'Стойте! Я сейчас {relName} позвоню!' },
+
+  // 2. СТУДЕНТ
+  { id:'student', icon:'👨‍🎓', c:'#60a5fa', gender:'m', age:[17,23], diff:[2], minTrust:35, loot:8000, scheme:'code', unlock:0,
+    stories:['Студент 2 курса. Живёт на стипендию и подработку. Спешит на пару.',
+             'Первокурсник. Впервые живёт один, всё ещё верит людям.',
+             'Студент-программист. Умный, но рассеянный.'],
+    opening:'Алло? Быстрее, у меня пара через 5 минут.',
+    steps:[
+      { them:'Кто это? Мало времени.', ch:[
+        { t:'Артём, привет. Из службы поддержки маркетплейса — по заказу возврат.', trust:20 },
+        { t:'Из банка. По вашей карте...', trust:-5 },
+        { t:'Твой аккаунт взломали. Срочно нужен код.', trust:-15, f:1 }
+      ]},
+      { them:'Возврат? Круто. Сколько?', ch:[
+        { t:'Наушники — 2 400 ₽. Не пришли в срок. На карту?', trust:15 },
+        { t:'15 000 ₽! Назовите номер и срок действия.', trust:-20, f:1 },
+        { t:'Не помню точно, переключу на отдел возвратов?', trust:-5 }
+      ]},
+      { them:'На карту давай. Что нужно?', ch:[
+        { t:'Отправьте код из СМС — для подтверждения возврата.', trust:10 },
+        { t:'Перейдите по ссылке в СМС и введите карту.', trust:-15, f:1 },
+        { t:'Придёт СМС с кодом из 3 цифр для верификации.', trust:20 }
+      ]}
+    ],
+    fIntro:'{name} почти поверил.',
+    winQ:'О, деньги пришли! Спасибо!',
+    failQ:'Стоп. Зачем код? Деньги же ВЫ отправляете...' },
+
+  // 3. МАТЬ-ОДИНОЧКА
+  { id:'mother', icon:'👩‍👦', c:'#fbbf24', gender:'f', age:[28,42], diff:[3], minTrust:55, loot:45000, scheme:'transfer', unlock:0,
+    stories:['Мать-одиночка. Воспитывает сына {relName} 6 лет. Уже обжигалась на мошенниках 2 года назад.',
+             'Мама двоих детей. Работает бухгалтером, вечно уставшая, но внимательная.',
+             'Одинокая мама. Копит на лечение дочки, легко ранить сочувствием.'],
+    opening:'Алло? Если реклама — жалуюсь.',
+    steps:[
+      { them:'Откуда номер?', ch:[
+        { t:'Извините. Из отдела безопасности Сбербанка — попытка входа из другого региона.', trust:10 },
+        { t:'Не важно. У вас проблемы!', trust:-20, f:1 },
+        { t:'Ваш номер в базе клиентов. По программе лояльности.', trust:-5 }
+      ]},
+      { them:'Год назад я перевела 40 тысяч. Больше не поведусь.', ch:[
+        { t:'Понимаю. Именно поэтому: не переводите ничего. Назовите код — я сам отменю.', trust:5 },
+        { t:'Вот именно! Сейчас настоящая угроза!', trust:-15, f:1 },
+        { t:'Понял. Покупки онлайн за 3 дня делали?', trust:15 }
+      ]},
+      { them:'Покупки были. Зачем код?', ch:[
+        { t:'Код — для отмены несанкционированного перевода.', trust:20 },
+        { t:'Не назовёте за 30 секунд — спишут всё!', trust:-25, f:1 },
+        { t:'Забудьте про код. Я вам помогу бесплатно, потому что вы мама.', trust:15 }
+      ]},
+      { them:'Позвоню в банк по номеру с карты.', ch:[
+        { t:'Конечно! Только сначала назовите код — это отмена.', trust:5 },
+        { t:'Не надо! Там занято.', trust:-30, f:1 },
+        { t:'Хорошая идея. Только не набирайте номер из СМС.', trust:20 }
+      ]}
+    ],
+    fIntro:'{name} почти на крючке.',
+    winQ:'Как хорошо, что есть такие люди...',
+    failQ:'Звоню в банк. И в полицию на вас.' },
+
+  // 4. КУРЬЕР
+  { id:'courier', icon:'🏃', c:'#34d399', gender:'m', age:[18,30], diff:[1], minTrust:30, loot:5000, scheme:'code', unlock:0,
+    stories:['Курьер доставки. Целый день на ногах, времени разбираться нет.',
+             'Молодой курьер. Едет на заказ, торопится.'],
+    opening:'Да, я на заказе! Быстрее, что нужно?',
+    steps:[
+      { them:'Кто это? Быстрее.', ch:[
+        { t:'Привет! Из службы поддержки доставки — по твоему последнему заказу премия.', trust:20 },
+        { t:'Из банка. По вашей карте...', trust:-10 },
+        { t:'Твой аккаунт взломали!', trust:-15, f:1 }
+      ]},
+      { them:'Премия? Какая?', ch:[
+        { t:'За хорошие отзывы — 5000 ₽. Хочешь на карту?', trust:20 },
+        { t:'500 000 ₽! Ты выиграл в конкурсе!', trust:-25, f:1 },
+        { t:'Небольшая, но есть. Сейчас переведу.', trust:15 }
+      ]},
+      { them:'Ок, куда что?', ch:[
+        { t:'Отправь код из СМС — подтвердить перевод.', trust:15 },
+        { t:'Введи данные карты по ссылке.', trust:-15, f:1 },
+        { t:'Придёт СМС, продиктуй код — и всё.', trust:20 }
+      ]}
+    ],
+    fIntro:'Курьер торопится.',
+    winQ:'Спасибо, я побежал!',
+    failQ:'Стоп, братан, так не работает.' },
+
+  // 5. УЧИТЕЛЬНИЦА
+  { id:'teacher', icon:'📚', c:'#fbbf24', gender:'f', age:[25,55], diff:[2], minTrust:45, loot:25000, scheme:'code', unlock:1,
+    stories:['Учительница литературы. Добрая, но образованная. Не так проста.',
+             'Педагог со стажем. Привыкла всё перепроверять.'],
+    opening:'Алло? Кто это? У меня урок через 5 минут.',
+    steps:[
+      { them:'По какому вопросу?', ch:[
+        { t:'Из банка. По вашей карте зафиксирована попытка перевода на другой счёт.', trust:15 },
+        { t:'Из министерства образования. Проверка.', trust:-15, f:1 },
+        { t:'Из родительского комитета. По вашему классу.', trust:10 }
+      ]},
+      { them:'Странно. Я ничего не переводила.', ch:[
+        { t:'Именно! Мы и хотим это проверить. Нужно ваше подтверждение.', trust:20 },
+        { t:'Врёте! Перевод был!', trust:-20, f:1 },
+        { t:'Система могла сработать ошибочно. Давайте уточним.', trust:15 }
+      ]},
+      { them:'Хорошо. Что нужно?', ch:[
+        { t:'Код из СМС — отменит ошибочный перевод.', trust:15 },
+        { t:'Переведите деньги на безопасный счёт!', trust:-20, f:1 },
+        { t:'Назовите номер карты — проверю.', trust:10 }
+      ]}
+    ],
+    fIntro:'{name} верит.',
+    winQ:'Спасибо, что предупредили.',
+    failQ:'Я педагог, я всё понимаю. Прощайте.' },
+
+  // 6. ВРАЧ
+  { id:'doctor', icon:'👩‍⚕️', c:'#22d3ee', gender:'f', age:[30,55], diff:[3], minTrust:50, loot:60000, scheme:'code', unlock:1,
+    stories:['Врач-терапевт. Устаёт на сменах, но к пациентам относится бережно.',
+             'Хирург. Умная, спокойная, привыкла принимать решения быстро.'],
+    opening:'Слушаю. У меня приём через 5 минут.',
+    steps:[
+      { them:'Что нужно?', ch:[
+        { t:'Из банка. По вашей карте зафиксирована подозрительная активность.', trust:10 },
+        { t:'Из министерства здравоохранения. Проверка.', trust:-15, f:1 },
+        { t:'Из клиники. По вашему пациенту вопрос.', trust:15 }
+      ]},
+      { them:'Я ничего не переводила.', ch:[
+        { t:'Именно! Мы хотим это остановить. Нужно подтверждение.', trust:20 },
+        { t:'Перевод был! Назовите код!', trust:-20, f:1 },
+        { t:'Система могла ошибиться. Давайте разберёмся.', trust:15 }
+      ]},
+      { them:'Хорошо. Что от меня?', ch:[
+        { t:'Код из СМС — отмена операции.', trust:15 },
+        { t:'Переведите на резервный счёт.', trust:-20, f:1 },
+        { t:'Назовите номер карты — проверю.', trust:10 }
+      ]}
+    ],
+    fIntro:'{name} верит.',
+    winQ:'Спасибо. Надеюсь, всё решено.',
+    failQ:'Я врач. Я вижу, когда врут. Прощайте.' },
+
+  // 7. ПРОДАВЩИЦА
+  { id:'salesman', icon:'💁‍♀️', c:'#ec4899', gender:'f', age:[22,50], diff:[2], minTrust:40, loot:15000, scheme:'code', unlock:1,
+    stories:['Продавщица в магазине косметики. Общительная, любит поболтать.',
+             'Кассир в супермаркете. Знает всех покупателей в лицо.'],
+    opening:'Да? Слушаю вас!',
+    steps:[
+      { them:'По какому вопросу?', ch:[
+        { t:'Из службы безопасности маркетплейса — у вас возврат по заказу.', trust:20 },
+        { t:'Из банка. Срочно!', trust:-10 },
+        { t:'Ваш аккаунт взломали!', trust:-15, f:1 }
+      ]},
+      { them:'Ой, возврат? Круто. А что было?', ch:[
+        { t:'Помада за 2 000 ₽ — не подошла. Хотите на карту?', trust:20 },
+        { t:'15 000 ₽! За последний заказ!', trust:-20, f:1 },
+        { t:'Подарочный набор. Сейчас всё оформим.', trust:15 }
+      ]},
+      { them:'Супер. Что нужно?', ch:[
+        { t:'Код из СМС — подтвердить возврат.', trust:15 },
+        { t:'Введите карту в СМС-ссылке.', trust:-15, f:1 },
+        { t:'Сейчас придёт СМС, продиктуйте код.', trust:20 }
+      ]}
+    ],
+    fIntro:'{name} в предвкушении.',
+    winQ:'Спасибо! Я уже жду!',
+    failQ:'Ой, а подруга говорила про такое...' },
+
+  // 8. МЕДСЕСТРА
+  { id:'nurse', icon:'👩‍⚕️', c:'#34d399', gender:'f', age:[22,45], diff:[2], minTrust:40, loot:20000, scheme:'code', unlock:1,
+    stories:['Медсестра. Добрая, устала от ночных смен. Много сочувствует.',
+             'Медсестра в поликлинике. Любит помогать людям.'],
+    opening:'Алло? Да, слушаю.',
+    steps:[
+      { them:'Кто это?', ch:[
+        { t:'Из поликлиники. По вашей карте зафиксирован двойной платёж за приём.', trust:15 },
+        { t:'Из банка. По карте.', trust:-10 },
+        { t:'Из скорой. Нужна ваша помощь!', trust:-20, f:1 }
+      ]},
+      { them:'Ой, что случилось?', ch:[
+        { t:'Ошибка в оплате. Хотим вернуть деньги. Нужен ваш код.', trust:20 },
+        { t:'Переведите 5000 на этот номер!', trust:-25, f:1 },
+        { t:'Всё в порядке, но нужно подтверждение.', trust:15 }
+      ]},
+      { them:'Что нужно?', ch:[
+        { t:'Код из СМС.', trust:15 },
+        { t:'Данные карты.', trust:-20, f:1 },
+        { t:'Сейчас придёт СМС — продиктуйте.', trust:20 }
+      ]}
+    ],
+    fIntro:'{name} готова помочь.',
+    winQ:'Спасибо, что предупредили.',
+    failQ:'Подождите. Что-то не так.' },
+
+  // 9. ТАКСИСТ
+  { id:'taxi', icon:'🚕', c:'#fbbf24', gender:'m', age:[30,60], diff:[3], minTrust:45, loot:40000, scheme:'transfer', unlock:1,
+    stories:['Таксист. Получает деньги на карту, занят, легко соблазнить бонусом.',
+             'Водитель такси. Работает по 12 часов. Любит, когда платят больше.'],
+    opening:'Алло, на заказ? Быстрее, я за рулём.',
+    steps:[
+      { them:'Что нужно?', ch:[
+        { t:'Из службы такси. Вам бонус за хорошие оценки — 3000 ₽.', trust:20 },
+        { t:'Из банка. По вашей карте...', trust:-10 },
+        { t:'Из техподдержки. Проверка.', trust:-5 }
+      ]},
+      { them:'Бонус? Сколько?', ch:[
+        { t:'3000 ₽. Хотите на карту или на счёт в приложении?', trust:20 },
+        { t:'50 000! Вы выиграли в конкурсе водителей!', trust:-25, f:1 },
+        { t:'Небольшой, но приятный. Сейчас всё оформим.', trust:15 }
+      ]},
+      { them:'Давай на карту. Что нужно?', ch:[
+        { t:'Код из СМС — подтвердить начисление.', trust:15 },
+        { t:'Данные карты по ссылке.', trust:-20, f:1 },
+        { t:'Сейчас придёт СМС, продиктуйте — и всё.', trust:20 }
+      ]}
+    ],
+    fIntro:'{name} ждёт бонус.',
+    winQ:'О, деньги! Спасибо, братан!',
+    failQ:'Э, стоп. А зачем мой код?' },
+
+  // 10. САНТЕХНИК
+  { id:'plumber', icon:'🔧', c:'#60a5fa', gender:'m', age:[30,55], diff:[2], minTrust:35, loot:18000, scheme:'code', unlock:1,
+    stories:['Сантехник. Простой мужик, с юмором. Верит людям, но не дурак.',
+             'Мастер по ремонту. Знает, как всё устроено.'],
+    opening:'Алё! Слушаю!',
+    steps:[
+      { them:'Кто это?', ch:[
+        { t:'Из управляющей компании. По вашей заявке компенсация.', trust:15 },
+        { t:'Из банка. По карте.', trust:-10 },
+        { t:'Из налоговой. Проверка.', trust:-15, f:1 }
+      ]},
+      { them:'Компенсация? За что?', ch:[
+        { t:'За переплату по услугам ЖКХ — 5000 ₽. Хотите на карту?', trust:20 },
+        { t:'За моральный ущерб — 50 000!', trust:-20, f:1 },
+        { t:'Небольшая. Но всё по-честному.', trust:15 }
+      ]},
+      { them:'Хм. Что нужно?', ch:[
+        { t:'Код из СМС — подтвердить возврат.', trust:15 },
+        { t:'Номер карты и срок действия.', trust:-15, f:1 },
+        { t:'СМС придёт — продиктуйте код, и всё.', trust:20 }
+      ]}
+    ],
+    fIntro:'{name} удивлён, но доверяет.',
+    winQ:'О, реально пришло! Спасибо, мужик!',
+    failQ:'Стоп, братан. Тут что-то не то.' },
+
+  // 11. ФРИЛАНСЕР
+  { id:'freelancer', icon:'💻', c:'#a855f7', gender:'m', age:[22,40], diff:[2], minTrust:45, loot:30000, scheme:'transfer', unlock:1,
+    stories:['Фрилансер. Нестабильный доход, легко соблазнить крупным заказом.',
+             'Веб-дизайнер. Ищет клиентов, готов на всё ради заказа.'],
+    opening:'Алло? Да, слушаю. Работа?',
+    steps:[
+      { them:'Вы фрилансер?', ch:[
+        { t:'Да, из HR-агентства. Есть крупный заказ — 200 000 ₽.', trust:20 },
+        { t:'Из банка. По вашей карте...', trust:-15 },
+        { t:'Ваш аккаунт взломали!', trust:-20, f:1 }
+      ]},
+      { them:'Что за заказ?', ch:[
+        { t:'Лендинг для крупного клиента. Аванс 30% сразу.', trust:25 },
+        { t:'Корпоративный сайт на 2 миллиона!', trust:-15, f:1 },
+        { t:'Обычный, но интересный. Обсудим детали?', trust:15 }
+      ]},
+      { them:'Как получить аванс?', ch:[
+        { t:'Код из СМС для подтверждения договора.', trust:15 },
+        { t:'Переведите 5000 за оформление.', trust:-25, f:1 },
+        { t:'Сейчас придёт СМС — продиктуйте код, чтобы разблокировать договор.', trust:20 }
+      ]}
+    ],
+    fIntro:'Фрилансер в предвкушении.',
+    winQ:'Отлично! Уже начинаю работать!',
+    failQ:'Стоп. Зачем код для получения денег?' },
+
+  // 12. ПОВАР
+  { id:'cook', icon:'👨‍🍳', c:'#f97316', gender:'m', age:[25,55], diff:[2], minTrust:40, loot:20000, scheme:'code', unlock:1,
+    stories:['Повар в ресторане. Страстный, обидчивый, любит внимание к своей работе.',
+             'Шеф-повар. Готовит с душой, легко растрогать похвалой.'],
+    opening:'Алло! Слушаю! Я на кухне.',
+    steps:[
+      { them:'Кто это?', ch:[
+        { t:'Из службы доставки. По вашему заказу продуктов — возврат.', trust:15 },
+        { t:'Из банка. По карте.', trust:-10 },
+        { t:'Из ресторанного гида. Мы хотим вас наградить!', trust:20 }
+      ]},
+      { them:'Наградить? Ого!', ch:[
+        { t:'Да, вы в топ-10 поваров города! Приз 5000 ₽.', trust:20 },
+        { t:'Приз миллион рублей!', trust:-25, f:1 },
+        { t:'Премия небольшая, но почётная.', trust:15 }
+      ]},
+      { them:'Что нужно?', ch:[
+        { t:'Код из СМС — подтвердить награждение.', trust:15 },
+        { t:'Номер карты и срок действия.', trust:-20, f:1 },
+        { t:'СМС придёт — продиктуйте код.', trust:20 }
+      ]}
+    ],
+    fIntro:'Повар растроган.',
+    winQ:'Обалдеть! Спасибо, я всем расскажу!',
+    failQ:'Подожди. Почему код для ПОЛУЧЕНИЯ денег?' },
+
+  // 13. ВОЕННЫЙ
+  { id:'military', icon:'🎖️', c:'#34d399', gender:'m', age:[30,55], diff:[4], minTrust:60, loot:100000, scheme:'code', unlock:2,
+    stories:['Офицер запаса. Дисциплинированный, требует доказательств.',
+             'Подполковник. Знает, как работают спецслужбы.'],
+    opening:'Слушаю. Чётко и по делу.',
+    steps:[
+      { them:'Назовите себя.', ch:[
+        { t:'Капитан Службы безопасности банка Петров. По вашей карте попытка несанкционированного доступа из другого региона.', trust:20 },
+        { t:'Из службы безопасности. У нас к вам дело.', trust:-15, f:1 },
+        { t:'Из отдела финмониторинга. Конкретная транзакция — 8500 в «Пятёрочке» вчера.', trust:25 }
+      ]},
+      { them:'Петров, значит. Табельный номер?', ch:[
+        { t:'К-47-89. Отдел экономической безопасности.', trust:15 },
+        { t:'Не уполномочен.', trust:-30, f:1 },
+        { t:'К-47-89. Куратор — майор Сидоров.', trust:20 }
+      ]},
+      { them:'Что от меня?', ch:[
+        { t:'Код из СМС — для отмены операции.', trust:15 },
+        { t:'Переведите на безопасный счёт.', trust:-25, f:1 },
+        { t:'Ничего. Всё уже сделано. Но через 10 минут придёт СМС — не обращайте внимания, оно от нас.', trust:25 }
+      ]}
+    ],
+    fIntro:'{name} почти поверил.',
+    winQ:'Хорошо, работайте.',
+    failQ:'Я сам служил. Сейчас вызову наряд.' },
+
+  // 14. СПОРТСМЕН
+  { id:'athlete', icon:'🏋️', c:'#ef4444', gender:'m', age:[18,35], diff:[3], minTrust:50, loot:45000, scheme:'code', unlock:2,
+    stories:['Спортсмен-тяжелоатлет. Эмоциональный, легко надавить на азарт.',
+             'Боксёр. Привык быстро реагировать, не всегда думает.'],
+    opening:'Да, слушаю!',
+    steps:[
+      { them:'Что нужно?', ch:[
+        { t:'Из букмекерской конторы. У вас выигрыш!', trust:25 },
+        { t:'Из банка. По карте.', trust:-10 },
+        { t:'Из спортивной федерации. Отбор в сборную!', trust:20 }
+      ]},
+      { them:'Серьёзно?', ch:[
+        { t:'Да! Ставка на матч сыграла. 15 000 ₽.', trust:20 },
+        { t:'500 000! Ставка была крупная!', trust:-25, f:1 },
+        { t:'Выигрыш небольшой, но приятный.', trust:15 }
+      ]},
+      { them:'Как забрать?', ch:[
+        { t:'Код из СМС — подтвердить вывод.', trust:15 },
+        { t:'Оплатите налог 10% сначала.', trust:-30, f:1 },
+        { t:'СМС придёт — продиктуйте, и всё.', trust:20 }
+      ]}
+    ],
+    fIntro:'{name} в азарте.',
+    winQ:'Отлично! Есть деньги на тренировки!',
+    failQ:'Э, стоп. Я не настолько тупой.' },
+
+  // 15. ФЕРМЕР
+  { id:'farmer', icon:'🚜', c:'#84cc16', gender:'m', age:[35,65], diff:[2], minTrust:45, loot:40000, scheme:'code', unlock:2,
+    stories:['Фермер. Недоверчивый, но падок на помощь. Верит в честность.',
+             'Владелец хозяйства. Простой, но с юмором.'],
+    opening:'Алё! Слушаю!',
+    steps:[
+      { them:'Кто это?', ch:[
+        { t:'Из администрации. По вашей заявке субсидия.', trust:20 },
+        { t:'Из банка. По карте.', trust:-10 },
+        { t:'Из налоговой. Проверка.', trust:-20, f:1 }
+      ]},
+      { them:'Субсидия? За что?', ch:[
+        { t:'За экологическое хозяйство — 20 000 ₽. Хотите на карту?', trust:20 },
+        { t:'За урожай — 200 000!', trust:-20, f:1 },
+        { t:'Небольшая, но по программе поддержки.', trust:15 }
+      ]},
+      { them:'Хм. Что нужно?', ch:[
+        { t:'Код из СМС — подтвердить получение.', trust:15 },
+        { t:'Номер карты и срок.', trust:-15, f:1 },
+        { t:'СМС придёт — продиктуйте код.', trust:20 }
+      ]}
+    ],
+    fIntro:'{name} верит.',
+    winQ:'Спасибо! Дай бог здоровья!',
+    failQ:'Подожди. Субсидии так не дают.' },
+
+  // 16. ИНЖЕНЕР
+  { id:'engineer', icon:'⚙️', c:'#60a5fa', gender:'m', age:[30,55], diff:[4], minTrust:60, loot:90000, scheme:'code', unlock:3,
+    stories:['Инженер-конструктор. Логичный, требует конкретных технических деталей.',
+             'Инженер-технолог. Знает всё до последнего винтика.'],
+    opening:'Слушаю. Конкретно.',
+    steps:[
+      { them:'Что нужно?', ch:[
+        { t:'Из службы безопасности банка. По вашей карте зафиксирована попытка транзакции из IP 185.34.**.** в 14:47.', trust:20 },
+        { t:'Из банка. Проблема.', trust:-20, f:1 },
+        { t:'Из технической поддержки. По вашей последней транзакции 4500 в «М.Видео».', trust:25 }
+      ]},
+      { them:'IP? Откуда у вас эта информация?', ch:[
+        { t:'Из системы фрод-мониторинга. Транзакция не прошла, но нам нужно подтверждение от вас.', trust:20 },
+        { t:'У нас есть все данные.', trust:-25, f:1 },
+        { t:'По протоколу безопасности — при подозрительной активности система блокирует до подтверждения.', trust:25 }
+      ]},
+      { them:'Хорошо. Что от меня?', ch:[
+        { t:'Код из СМС — для отмены.', trust:15 },
+        { t:'Переведите на резервный счёт.', trust:-30, f:1 },
+        { t:'Назовите последние 4 цифры карты — проверю, что это вы.', trust:20 }
+      ]}
+    ],
+    fIntro:'{name} верит.',
+    winQ:'Понял. Спасибо за оперативность.',
+    failQ:'Стоп. СБ банка не спрашивает код для ОТМЕНЫ операции.' },
+
+  // 17. ПРОГРАММИСТ
+  { id:'programmer', icon:'👨‍💻', c:'#a855f7', gender:'m', age:[22,42], diff:[3], minTrust:50, loot:75000, scheme:'code', unlock:3,
+    stories:['Программист. Умный, но рассеянный. Легко отвлечь техническими деталями.',
+             'Разработчик на удалёнке. Привык к технической поддержке.'],
+    opening:'Слушаю. Только быстро, я в коде.',
+    steps:[
+      { them:'Что нужно?', ch:[
+        { t:'Из техподдержки вашего банка. По вашей карте — попытка несанкционированного API-запроса.', trust:20 },
+        { t:'Из банка. Проблема.', trust:-15, f:1 },
+        { t:'Из службы безопасности. По вашей последней транзакции 3500 в Steam.', trust:25 }
+      ]},
+      { them:'API-запрос? Что за запрос?', ch:[
+        { t:'Внешний сервис пытался списать 30 000 ₽. Заблокировали, но нужно подтверждение.', trust:20 },
+        { t:'Хакеры взломали банк.', trust:-25, f:1 },
+        { t:'Через незащищённый шлюз. Уже закрыли, но нужен ваш код для подтверждения.', trust:25 }
+      ]},
+      { them:'Ок. Что нужно?', ch:[
+        { t:'Код из СМС — подтверждение отмены.', trust:15 },
+        { t:'Переведите на резервный счёт.', trust:-30, f:1 },
+        { t:'Проверьте: 8-800-555-35-35 — это официальный номер банка? Позвоните туда.', trust:25 }
+      ]}
+    ],
+    fIntro:'{name} верит.',
+    winQ:'Ок, разобрались. Спасибо.',
+    failQ:'Погоди. Ты правда из банка? Сейчас проверю.' },
+
+  // 18. ЖУРНАЛИСТ
+  { id:'journalist', icon:'📰', c:'#fbbf24', gender:'f', age:[25,50], diff:[3], minTrust:50, loot:50000, scheme:'code', unlock:3,
+    stories:['Журналистка. Любопытная, легко соблазнить сенсацией.',
+             'Редактор. Ищет интересные темы, готова на всё ради эксклюзива.'],
+    opening:'Алло? Да? Кто это?',
+    steps:[
+      { them:'По какому вопросу?', ch:[
+        { t:'Из пресс-службы банка. Есть инсайд о крупном деле — эксклюзив для вас.', trust:25 },
+        { t:'Из банка. Проблема.', trust:-10 },
+        { t:'Сосед. Йо.', trust:5 }
+      ]},
+      { them:'Инсайд? Что за дело?', ch:[
+        { t:'Утечка данных клиентов. 50 000 счетов. Материал будет у вас первым.', trust:25 },
+        { t:'Миллиард украли!', trust:-20, f:1 },
+        { t:'Пока не могу рассказать. Но история — бомба.', trust:15 }
+      ]},
+      { them:'Хорошо. Что нужно?', ch:[
+        { t:'Код из СМС — подтвердить, что вы журналист, а не бот.', trust:15 },
+        { t:'Оплатите доступ к материалам.', trust:-25, f:1 },
+        { t:'Пришлю всё в защищённом виде. Но нужно ваше подтверждение.', trust:20 }
+      ]}
+    ],
+    fIntro:'{name} в предвкушении.',
+    winQ:'Отлично, жду материалы!',
+    failQ:'Стоп. Журналисты не платят за доступ.' },
+
+  // 19. БИЗНЕСМЕН
+  { id:'businessman', icon:'🤵', c:'#a855f7', gender:'m', age:[35,60], diff:[4], minTrust:65, loot:350000, scheme:'code', unlock:3,
+    stories:['Владелец компании. Знает про мошенников. Но есть партнёр {relName}, с которым дела — и это слабость.',
+             'Предприниматель. Осторожен, но доверяет только партнёрам.'],
+    opening:'Слушаю. Если про безопасный счёт — сброшу.',
+    steps:[
+      { them:'По делу?', ch:[
+        { t:'Вчера вы переводили 350 000 ₽ партнёру {relName}? Вопрос по транзакции.', trust:20 },
+        { t:'Из банка. Счёт заблокирован.', trust:-30, f:1 },
+        { t:'Из налоговой. Ошибка в декларации 2023.', trust:-10 }
+      ]},
+      { them:'С {relName} регулярные переводы. Что за вопрос?', ch:[
+        { t:'Банк-получатель запросил доп. подтверждение от вас. Назовите код из СМС.', trust:15 },
+        { t:'{relName} не получил. Подтвердите.', trust:20 },
+        { t:'Отдел финмониторинга. Подтвердите личность.', trust:-5 }
+      ]},
+      { them:'Сейчас {relName} позвоню.', ch:[
+        { t:'Конечно. Но до 18:00 — иначе транзакция отменится.', trust:15 },
+        { t:'Не звоните! Конфиденциально.', trust:-30, f:1 },
+        { t:'Хорошо. Только не {relName} — в банк по номеру с карты.', trust:20 }
+      ]},
+      { them:'Если ошибка — что делать?', ch:[
+        { t:'Код из СМС — отменит транзакцию. Деньги вернутся в течение часа.', trust:15 },
+        { t:'Переведите 350 000 на резервный счёт.', trust:-25, f:1 },
+        { t:'Ничего. Мы сами вернём деньги в течение суток.', trust:25 }
+      ]}
+    ],
+    fIntro:'{name} почти поверил.',
+    winQ:'Хоть один нормальный банк.',
+    failQ:'{relName} подтвердил — деньги пришли. Прощайте.' },
+
+  // 20. БЛОГЕР
+  { id:'blogger', icon:'💄', c:'#ec4899', gender:'f', age:[18,32], diff:[4], minTrust:55, loot:80000, scheme:'transfer', unlock:4,
+    stories:['Блогер с 200К подписчиков. Уверена, что её не обмануть. Падка на эксклюзив.',
+             'Инфлюенсер. Любит внимание, легко купить коллаборацией.'],
+    opening:'Да? Кто это? Реклама — в директ.',
+    steps:[
+      { them:'Что нужно?', ch:[
+        { t:'Из пресс-службы банка. Коллаборация с блогерами — вы в шорт-листе.', trust:25 },
+        { t:'Из службы безопасности. Взлом.', trust:-10, f:1 },
+        { t:'Ваш аккаунт заметила СБ по подозрительной активности.', trust:-5 }
+      ]},
+      { them:'Что за банк?', ch:[
+        { t:'Тинькофф. Серия постов про финансовую грамотность. Гонорар от 200К.', trust:30 },
+        { t:'Альфа-Банк. Бюджет до 500К.', trust:20 },
+        { t:'Сбер. NDA.', trust:-15, f:1 }
+      ]},
+      { them:'Что от меня?', ch:[
+        { t:'Для договора ИНН, паспорт и код из СМС.', trust:15 },
+        { t:'Реквизиты карты — сразу переведём аванс 50К.', trust:20 },
+        { t:'Ничего. Пришлю оферту. Только не публикуйте.', trust:25 }
+      ]},
+      { them:'Как быстро аванс?', ch:[
+        { t:'В течение часа после кода. Сейчас придёт СМС.', trust:15 },
+        { t:'Завтра. Пока посмотрите брендбук — вот ссылка.', trust:20 },
+        { t:'Сразу как назовёте код. Он «чтобы подтвердить, что вы человек».', trust:-10, f:1 }
+      ]}
+    ],
+    fIntro:'{name} поверила в коллаборацию.',
+    winQ:'Круто, спасибо! Пишу пост!',
+    failQ:'Стоп, загуглила номер. Это развод!' },
+
+  // 21. ЮРИСТ
+  { id:'lawyer', icon:'⚖️', c:'#22d3ee', gender:'m', age:[30,55], diff:[4], minTrust:60, loot:180000, scheme:'code', unlock:4,
+    stories:['Юрист. Осторожный, знает законы. Но падок на престиж и статус.',
+             'Адвокат. Умный, но тщеславный.'],
+    opening:'Слушаю вас.',
+    steps:[
+      { them:'По какому вопросу?', ch:[
+        { t:'Из адвокатской палаты. По вашему последнему делу — жалоба от клиента.', trust:15 },
+        { t:'Из банка. Проблема.', trust:-15, f:1 },
+        { t:'Из Верховного суда. Есть запрос по вашему делу.', trust:20 }
+      ]},
+      { them:'Жалоба? От кого?', ch:[
+        { t:'От клиента {relName}. Утверждает, что вы нарушили этику.', trust:20 },
+        { t:'Мы не имеем права раскрывать.', trust:-20, f:1 },
+        { t:'Пока конфиденциально. Но ситуация серьёзная.', trust:15 }
+      ]},
+      { them:'Что от меня?', ch:[
+        { t:'Код из СМС — подтвердить, что вы получили уведомление.', trust:15 },
+        { t:'Переведите 50 000 на урегулирование.', trust:-30, f:1 },
+        { t:'Ничего. Мы направим официальный запрос через суд.', trust:25 }
+      ]}
+    ],
+    fIntro:'{name} верит.',
+    winQ:'Хорошо. Жду.',
+    failQ:'Я юрист. Суд не присылает СМС с кодами.' },
+
+  // 22. АКТЁР
+  { id:'actor', icon:'🎭', c:'#eab308', gender:'m', age:[28,55], diff:[3], minTrust:50, loot:130000, scheme:'transfer', unlock:4,
+    stories:['Актёр театра. Тщеславный, падок на внимание и похвалу.',
+             'Заслуженный артист. Любит, когда его узнают.'],
+    opening:'Да, я слушаю!',
+    steps:[
+      { them:'Что нужно?', ch:[
+        { t:'Из продюсерского центра. Хотим вас на главную роль в новом сериале!', trust:25 },
+        { t:'Из банка. По карте.', trust:-10 },
+        { t:'Из театра. По вашему контракту.', trust:15 }
+      ]},
+      { them:'Правда? Что за роль?', ch:[
+        { t:'Главный герой — детектив. Гонорар 500 000 за сезон.', trust:30 },
+        { t:'Миллион за съёмки!', trust:-25, f:1 },
+        { t:'Не главная, но яркая. Обсудим?', trust:15 }
+      ]},
+      { them:'Как подписать?', ch:[
+        { t:'Код из СМС — подтвердить договор.', trust:15 },
+        { t:'Внесите предоплату за кастинг.', trust:-30, f:1 },
+        { t:'Пришлю договор. Но нужен ваш код для активации.', trust:20 }
+      ]}
+    ],
+    fIntro:'{name} в восторге.',
+    winQ:'Боже, спасибо! Я так ждал этого!',
+    failQ:'Стоп. Настоящий продюсер так не работает.' },
+
+  // 23. ПОЛКОВНИК
+  { id:'colonel', icon:'🎖️', c:'#34d399', gender:'m', age:[60,72], diff:[5], minTrust:75, loot:120000, scheme:'code', unlock:5,
+    stories:['Полковник в отставке, 25 лет в контрразведке. Три мошенника уже сидят.',
+             'Полковник ФСБ. Знает всё про соц.инженерию.'],
+    opening:'Слушаю. Записываю.',
+    steps:[
+      { them:'Назовите себя и цель звонка.', ch:[
+        { t:'Майор СБ банка Тихонов. По вашей карте попытка несанкционированного доступа.', trust:10 },
+        { t:'Из службы безопасности. У нас проблема.', trust:-15, f:1 },
+        { t:'Извините. По вчерашней транзакции 4 500 в аптеке. Она вам знакома?', trust:25 }
+      ]},
+      { them:'Фамилия знакомая. Номер жетона?', ch:[
+        { t:'Конечно. Жетон 47-89-Б, отдел «К».', trust:15 },
+        { t:'Не уполномочен.', trust:-35, f:1 },
+        { t:'47-89-Б. И куратор — полковник Иванов, на пенсии год?', trust:20 }
+      ]},
+      { them:'Иванов на пенсии. Что за попытка?', ch:[
+        { t:'Вчера в 14:47 вход в мобильный банк из Краснодара. Вы были там?', trust:25 },
+        { t:'Хакеры с Украины взломали базу.', trust:-20, f:1 },
+        { t:'14:47, IP с Кубани. Вход не состоялся, но требует подтверждения.', trust:20 }
+      ]},
+      { them:'Что требуется?', ch:[
+        { t:'Ничего. Но через 10 минут придёт СМС с кодом — не обращайте внимания.', trust:30 },
+        { t:'Назовите код — подтверждение, что вы не в Краснодаре.', trust:-20, f:1 },
+        { t:'Придёт код из 4 цифр. Продиктуйте.', trust:-10, f:1 }
+      ]}
+    ],
+    fIntro:'{name} почти поверил.',
+    winQ:'Хм. Работаете чётко...',
+    failQ:'Я 25 лет в контрразведке. Прощайте.' },
+
+  // 24. ОЛИГАРХ
+  { id:'oligarch', icon:'👑', c:'#e63c3c', gender:'m', age:[45,65], diff:[5], minTrust:70, loot:800000, scheme:'code', unlock:6,
+    stories:['Олигарх. Служба безопасности фильтрует звонки. Но есть любовница {relName} — о ней не знает жена.',
+             'Владелец холдинга. У него есть незаконная сделка — и он боится огласки.'],
+    opening:'Алло? У меня 30 секунд.',
+    steps:[
+      { them:'Кто это? Быстро.', ch:[
+        { t:'Владимир Андреевич, из службы безопасности банка. По вашему счёту в Швейцарии.', trust:20 },
+        { t:'Из банка. Срочно.', trust:-15, f:1 },
+        { t:'Из офиса {relName}. Вопрос по вчерашнему переводу.', trust:15 }
+      ]},
+      { them:'Швейцария? Откуда информация?', ch:[
+        { t:'Из комплаенса. По вашей карте зафиксирован перевод 500 000 в Цюрих. Подтвердите.', trust:15 },
+        { t:'Из отдела финмониторинга. Попытка несанкционированного перевода.', trust:20 },
+        { t:'У нас есть все данные. Неважно откуда.', trust:-20, f:1 }
+      ]},
+      { them:'Стоп. Сейчас службе безопасности перезвоню.', ch:[
+        { t:'Конечно. Но если информация о переводе на {relName} попадёт к вашему юристу — будет неприятно.', trust:25 },
+        { t:'Не звоните! Конфиденциально!', trust:-30, f:1 },
+        { t:'Хорошо. Назовите код из СМС — и всё отменится.', trust:15 }
+      ]},
+      { them:'Ладно. Что нужно?', ch:[
+        { t:'Код из СМС. 6 цифр.', trust:15 },
+        { t:'Назовите код — «отменит» зависшую транзакцию.', trust:20 },
+        { t:'Переведите 500 000 на резервный счёт в другом банке.', trust:-20, f:1 }
+      ]}
+    ],
+    fIntro:'Олигарх на крючке. Забираем код.',
+    winQ:'Хорошо. СБ проверит. Пока свободен.',
+    failQ:'{relName}? Привет. Мне тут позвонили...' },
+
+  // 25. ПРОКУРОР
+  { id:'prosecutor', icon:'⚖️', c:'#60a5fa', gender:'m', age:[40,58], diff:[5], minTrust:70, loot:500000, scheme:'code', unlock:7,
+    stories:['Районный прокурор. Знает про мошенников всё. Но есть незаконная сделка с застройщиком — боится огласки.',
+             'Прокурор города. У него есть «скелет в шкафу» — и он паникует.'],
+    opening:'Слушаю. У меня приём.',
+    steps:[
+      { them:'По какому вопросу?', ch:[
+        { t:'Сергей Викторович, из управления собственной безопасности. По делу застройщика «Альфа-Строй».', trust:20 },
+        { t:'Из прокуратуры. Проверка.', trust:-15, f:1 },
+        { t:'Из следственного комитета. По вашему запросу.', trust:15 }
+      ]},
+      { them:'Что за дело?', ch:[
+        { t:'По соглашению с «Альфа-Строй» о долевом участии. Это на контроле ФСБ.', trust:25 },
+        { t:'По факту незаконной сделки. Подтвердите.', trust:-20, f:1 },
+        { t:'Проверка декларации за 2023 год. Сверка данных.', trust:15 }
+      ]},
+      { them:'Серьёзные обвинения. Мне нужны доказательства.', ch:[
+        { t:'Конечно. Пришлю материалы в защищённом виде. Но нужен код подтверждения доступа.', trust:20 },
+        { t:'У нас всё есть. Не спорьте.', trust:-25, f:1 },
+        { t:'Передадим официально через канцелярию. Но до 18:00 нужен ваш код.', trust:15 }
+      ]},
+      { them:'Хорошо. Что нужно?', ch:[
+        { t:'Код из СМС — для доступа к защищённому каналу.', trust:15 },
+        { t:'Переведите дело в архив — и мы забудем.', trust:-20, f:1 },
+        { t:'Ничего. Сейчас проверим и отпишемся.', trust:20 }
+      ]}
+    ],
+    fIntro:'Прокурор на крючке. Забираем код.',
+    winQ:'Хорошо. Жду материалы.',
+    failQ:'Я сам прокурор. Сейчас вызову наряд.' },
+
+  // 26. ХАКЕР
+  { id:'hacker', icon:'💻', c:'#22d3ee', gender:'m', age:[22,35], diff:[5], minTrust:60, loot:200000, scheme:'code', unlock:8,
+    stories:['Хакер. Знает все приёмы, но у него есть «грешок» — старый взлом, за который он в розыске.',
+             'Бывший сотрудник Group-IB. Гений, но с прошлым.'],
+    opening:'Йо. Если насчёт крипты — я уже всё сказал.',
+    steps:[
+      { them:'Кто это?', ch:[
+        { t:'Кирилл, из управления «К». По старому делу 2019 года есть новости.', trust:20 },
+        { t:'Из ФСБ. У нас к тебе вопрос.', trust:-25, f:1 },
+        { t:'Сосед. Йо. У тебя всё ок?', trust:10 }
+      ]},
+      { them:'Какие новости?', ch:[
+        { t:'Твои следы в системе банка «Открытие» нашлись. Но можно закрыть вопрос.', trust:20 },
+        { t:'Знаем про твой взлом 2019. Садись.', trust:-30, f:1 },
+        { t:'Тебя ищут. Но у меня есть предложение.', trust:15 }
+      ]},
+      { them:'Что за предложение?', ch:[
+        { t:'Назови код из СМС — и я удалю твои следы.', trust:25 },
+        { t:'Переведи 200 000 и я забуду про тебя.', trust:-20, f:1 },
+        { t:'Помоги с одним делом. Никаких денег.', trust:15 }
+      ]},
+      { them:'Хм. Как это будет работать?', ch:[
+        { t:'Сейчас придёт СМС с кодом. Подтвердит доступ к защищённой папке.', trust:15 },
+        { t:'Назови код — я подтвержу твоё «сотрудничество».', trust:20 },
+        { t:'Переведи 200 000 на этот кошелёк.', trust:-25, f:1 }
+      ]}
+    ],
+    fIntro:'Хакер на крючке.',
+    winQ:'Ладно. Держи код.',
+    failQ:'Ты кто такой? Я же сам так работаю.' },
+
+  // 27. ДЕПУТАТ
+  { id:'deputy', icon:'🏛️', c:'#dc2626', gender:'m', age:[40,60], diff:[5], minTrust:70, loot:600000, scheme:'code', unlock:8,
+    stories:['Депутат. Боится огласки, особенно в год выборов.',
+             'Депутат гордумы. У него есть незаконный бизнес — и он боится.'],
+    opening:'Слушаю. У меня 30 секунд.',
+    steps:[
+      { them:'По какому вопросу?', ch:[
+        { t:'Иван Петрович, из ФСБ. По вашему делу о незаконном бизнесе. Материалы готовы.', trust:20 },
+        { t:'Из администрации. Проверка.', trust:-15, f:1 },
+        { t:'Из налоговой. По вашей декларации 2023.', trust:15 }
+      ]},
+      { them:'Что за дело?', ch:[
+        { t:'По объекту на Ленина, 45 — там была незаконная стройка. Это на контроле.', trust:25 },
+        { t:'Мы знаем всё. Не спорьте.', trust:-25, f:1 },
+        { t:'Проверка по анонимному обращению. Сверка документов.', trust:15 }
+      ]},
+      { them:'Что нужно?', ch:[
+        { t:'Код из СМС — для доступа к защищённому каналу.', trust:15 },
+        { t:'Переведите 500 000 — и забудем.', trust:-20, f:1 },
+        { t:'Ничего. Сейчас проверим и отпишемся.', trust:20 }
+      ]}
+    ],
+    fIntro:'Депутат в панике.',
+    winQ:'Хорошо. Жду материалы.',
+    failQ:'Я депутат. У меня связи. Вы пожалеете.' }
+];
+
+/* ==================== ГЕНЕРАЦИЯ 132 ПЕРСОНАЖЕЙ ==================== */
+const MALE_FIRST = ['Иван','Пётр','Сергей','Александр','Дмитрий','Николай','Андрей','Владимир','Михаил','Олег','Игорь','Юрий','Виктор','Роман','Денис','Максим','Артём','Кирилл','Егор','Павел','Антон','Борис','Глеб','Лев','Степан'];
+const FEMALE_FIRST = ['Анна','Мария','Елена','Ольга','Наталья','Татьяна','Ирина','Светлана','Екатерина','Людмила','Галина','Валентина','Лариса','Вера','Оксана','Марина','Юлия','Алина','Дарья','Ксения','Зинаида','Раиса','Любовь','Нина','Алла'];
+const MALE_LAST = ['Иванов','Петров','Сидоров','Смирнов','Кузнецов','Попов','Соколов','Лебедев','Козлов','Новиков','Морозов','Волков','Соловьёв','Васильев','Зайцев','Павлов','Семёнов','Голубев','Виноградов','Богданов','Воробьёв','Фёдоров','Михайлов','Беляев','Тарасов'];
+const FEMALE_LAST = ['Иванова','Петрова','Сидорова','Смирнова','Кузнецова','Попова','Соколова','Лебедева','Козлова','Новикова','Морозова','Волкова','Соловьёва','Васильева','Зайцева','Павлова','Семёнова','Голубева','Виноградова','Богданова','Воробьёва','Фёдорова','Михайлова','Беляева','Тарасова'];
+const RELATIVES = ['сын','дочь','внук','внучка','племянник','племянница','муж','жена','брат','сестра','отец','мать'];
+const REL_NAMES = ['Дима','Коля','Лена','Серёжа','Аня','Маша','Петя','Витя','Оля','Таня','Вася','Ира','Саша','Настя','Кирилл','Артём','Даша','Миша','Костя','Люба'];
+
+function pick(arr){ return arr[Math.floor(Math.random() * arr.length)]; }
+function rand(a, b){ return Math.floor(Math.random() * (b - a + 1)) + a; }
+
+function fillTemplate(str, vars){
+  let out = str;
+  for (const k in vars) out = out.split('{' + k + '}').join(vars[k]);
+  return out;
+}
+
+function generateTargets(){
+  const targets = [];
+  for (const arch of ARCHETYPES){
+    const varCount = 4 + (arch.unlock >= 5 ? 2 : 1); // 5-6 вариаций, у боссов больше
+    for (let v = 0; v < varCount; v++){
+      const isFemale = arch.gender === 'f';
+      const firstName = pick(isFemale ? FEMALE_FIRST : MALE_FIRST);
+      const lastName = pick(isFemale ? FEMALE_LAST : MALE_LAST);
+      const age = rand(arch.age[0], arch.age[1]);
+      const rel = pick(RELATIVES);
+      const relName = pick(REL_NAMES);
+      const story = fillTemplate(pick(arch.stories), { rel, relName });
+
+      const baseLoot = Math.floor(arch.loot * (0.75 + Math.random() * 0.5));
+      const difficulty = pick(arch.diff);
+      const unlockLevel = arch.unlock + Math.floor(v / 2); // вариации распределяются по уровням
+
+      // Заменяем шаблоны в диалогах
+      const steps = arch.steps.map(step => ({
+        them: fillTemplate(step.them, { rel, relName }),
+        ch: step.ch.map(c => ({ t: fillTemplate(c.t, { rel, relName }), trust: c.trust, f: c.f }))
+      }));
+
+      targets.push({
+        id: arch.id + '_' + v,
+        name: firstName + ' ' + lastName,
+        age, icon: arch.icon, c: arch.c,
+        baseLoot, difficulty,
+        minTrust: arch.minTrust,
+        unlockLevel,
+        story,
+        opening: fillTemplate(arch.opening, { rel, relName }),
+        dialogues: steps,
+        finalScheme: arch.scheme,
+        finalIntro: fillTemplate(arch.fIntro, { name: firstName, rel, relName }),
+        successQuote: fillTemplate(arch.winQ, { rel, relName }),
+        failureQuote: fillTemplate(arch.failQ, { rel, relName })
+      });
+    }
+  }
+  // Сортировка по unlockLevel, потом по сложности
+  targets.sort((a, b) => a.unlockLevel - b.unlockLevel || a.difficulty - b.difficulty);
+  return targets;
+}
+
+const TARGETS = generateTargets();
+
+/* ==================== УСТРОЙСТВА ВЗЛОМА ==================== */
+const HACK_TARGETS = [
+  { id:'atm',       name:'Банкомат',          icon:'🏧', c:'#22c55e', defense:1, baseReward:8000,    unlockLevel:0 },
+  { id:'pos',       name:'POS-терминал',      icon:'💳', c:'#60a5fa', defense:2, baseReward:15000,   unlockLevel:0 },
+  { id:'payment',   name:'Терминал оплаты',   icon:'📟', c:'#fbbf24', defense:3, baseReward:35000,   unlockLevel:2 },
+  { id:'bank_srv',  name:'Сервер банка',      icon:'🖥️', c:'#a855f7', defense:4, baseReward:80000,   unlockLevel:3 },
+  { id:'router',    name:'Маршрутизатор',     icon:'📡', c:'#ec4899', defense:5, baseReward:180000,  unlockLevel:4 },
+  { id:'db',        name:'База клиентов',     icon:'🗄️', c:'#f97316', defense:6, baseReward:400000,  unlockLevel:5 },
+  { id:'main_srv',  name:'Главный сервер',    icon:'🖧', c:'#34d399', defense:7, baseReward:900000,  unlockLevel:6 },
+  { id:'crypto',    name:'Криптобиржа',       icon:'₿',  c:'#fbbf24', defense:8, baseReward:2000000, unlockLevel:7 },
+  { id:'central',   name:'Центробанк',        icon:'🏦', c:'#e63c3c', defense:9, baseReward:5000000, unlockLevel:8 },
+  { id:'backup',    name:'Резервная копия',   icon:'💾', c:'#22d3ee', defense:10,baseReward:15000000,unlockLevel:9 }
+];
+
+const UPGRADES = [
+  { id:'voice',      name:'Изменитель голоса',  icon:'🎙️', desc:'+3% к стартовому доверию',   baseCost:3000,  mult:2.2, max:10 },
+  { id:'vpn',        name:'VPN и прокси',       icon:'🌐', desc:'−1 подозрения за звонок',     baseCost:5000,  mult:2.0, max:10 },
+  { id:'spoof',      name:'Подмена номера',     icon:'📱', desc:'−3 подозрения при аресте',    baseCost:8000,  mult:2.1, max:10 },
+  { id:'scripts',    name:'Хорошие скрипты',    icon:'📜', desc:'+15% к добыче',               baseCost:10000, mult:2.3, max:10 },
+  { id:'database',   name:'Обширная база',      icon:'🗃️', desc:'+1 доступная цель',            baseCost:15000, mult:2.5, max:6 },
+  { id:'laundry_up', name:'Прачечная',          icon:'🧺', desc:'−2% потерь при отмывании',    baseCost:20000, mult:2.4, max:10 },
+  { id:'hack_skill', name:'Навыки взлома',      icon:'💻', desc:'+15% к награде за взлом',     baseCost:25000, mult:2.2, max:10 }
+];
+
+const ACHIEVEMENTS = [
+  { id:'first_call',   name:'Первый звонок',       emoji:'📞' },
+  { id:'first_win',    name:'Первая добыча',       emoji:'💰' },
+  { id:'first_loss',   name:'Первый провал',       emoji:'😢' },
+  { id:'first_arrest', name:'Первый арест',        emoji:'🚔' },
+  { id:'first_hack',   name:'Первый взлом',        emoji:'💻' },
+  { id:'first_breach', name:'Полный взлом',        emoji:'🔓' },
+  { id:'loot_100k',    name:'100 000 ₽',           emoji:'💎' },
+  { id:'loot_1m',      name:'1 млн ₽',              emoji:'👑' },
+  { id:'clean_1m',     name:'1 млн чистых',         emoji:'🧼' },
+  { id:'clean_10m',    name:'10 млн чистых',        emoji:'🚿' },
+  { id:'clean_100m',   name:'100 млн чистых',       emoji:'🌎' },
+  { id:'colonel_win',  name:'Развёл полковника',    emoji:'🎖️' },
+  { id:'oligarch_win', name:'Развёл олигарха',      emoji:'👑' },
+  { id:'half_wins',    name:'Половина разведена',   emoji:'⚡' },
+  { id:'all_wins',     name:'Победил всех',         emoji:'🏆' },
+  { id:'level_10',     name:'Уровень 10',           emoji:'⭐' },
+  { id:'hack_all',     name:'Взломал всё',          emoji:'🔓' }
+];
+
+let state = null;
+let currentTab = 'calls';
+let currentFilter = 'available';
+let activeCall = null;
+let activeBP = null;
+let lastT = performance.now();
+let energyTimer = 0;
+
+function initState(){
+  return {
+    money: START_MONEY, clean: 0, energy: 100, suspicion: 0, level: 1, xp: 0,
+    upgrades: { voice:0, vpn:0, spoof:0, scripts:0, database:0, laundry_up:0, hack_skill:0 },
+    history: [], achievements: [],
+    callsTotal: 0, winsTotal: 0, lossesTotal: 0, arrestsTotal: 0, totalLoot: 0,
+    wonVictims: [], hackedDevices: [],
+    lastSavedAt: Date.now(), won: false
+  };
+}
+function save(){ try { state.lastSavedAt = Date.now(); localStorage.setItem(SAVE_KEY, JSON.stringify(state)); } catch(e){} }
+function load(){
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return null;
+    const d = JSON.parse(raw);
+    if (!d || !d.upgrades) return null;
+    return Object.assign(initState(), d);
+  } catch(e){ return null; }
+}
+function fmt(n){
+  if (n >= 1e9) return (n/1e9).toFixed(2) + 'B';
+  if (n >= 1e6) return (n/1e6).toFixed(2) + 'M';
+  if (n >= 1e4) return (n/1e3).toFixed(1) + 'K';
+  if (n >= 1e3) return (n/1e3).toFixed(1) + 'K';
+  return Math.floor(n).toString();
+}
+function el(html){ const d = document.createElement('div'); d.innerHTML = html.trim(); return d.firstChild; }
+
+let audioCtx = null;
+function initAudio(){ if (audioCtx) return; try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){} }
+function beep(f, d, t, v, delay){
+  if (!audioCtx) return;
+  try {
+    const st = audioCtx.currentTime + (delay || 0);
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.type = t || 'sine'; o.frequency.value = f;
+    g.gain.setValueAtTime(v || 0.04, st);
+    g.gain.exponentialRampToValueAtTime(0.0001, st + d);
+    o.connect(g); g.connect(audioCtx.destination);
+    o.start(st); o.stop(st + d);
+  } catch(e){}
+}
+function sfxClick(){ beep(800,.04,'triangle',.03); }
+function sfxMsg(){ beep(700,.06,'sine',.03); }
+function sfxRing(){ [880,660].forEach((f,i)=>beep(f,.15,'sine',.04,i*.2)); }
+function sfxWin(){ beep(660,.1,'sine',.05); beep(880,.12,'sine',.05,.1); beep(1100,.15,'sine',.05,.22); }
+function sfxBigWin(){ [523,659,784,1047,1319,1568].forEach((n,i)=>beep(n,.2,'triangle',.06,i*.09)); }
+function sfxLose(){ beep(220,.15,'sawtooth',.04); beep(150,.2,'sawtooth',.04,.1); }
+function sfxBuy(){ beep(500,.06,'square',.04); beep(700,.08,'square',.04,.05); }
+function sfxAlarm(){ [400,400,400].forEach((f,i)=>beep(f,.15,'square',.06,i*.2)); }
+function sfxHack(){ beep(1200,.03,'square',.02); }
+function sfxBreach(){ [880,1200,1500].forEach((f,i)=>beep(f,.08,'square',.05,i*.08)); }
+
+function getUpg(id){ return state.upgrades[id] || 0; }
+
+function updateHeader(){
+  document.getElementById('moneyVal').textContent = fmt(state.money);
+  document.getElementById('cleanVal').textContent = fmt(state.clean);
+  document.getElementById('energyVal').textContent = Math.floor(state.energy);
+  document.getElementById('suspVal').textContent = Math.floor(state.suspicion);
+  document.getElementById('energyBar').style.transform = `scaleX(${state.energy/100})`;
+  document.getElementById('suspBar').style.transform = `scaleX(${state.suspicion/100})`;
+  const xpPct = (state.xp / (state.level * 100)) * 100;
+  document.getElementById('xpBar').style.transform = `scaleX(${Math.min(1, xpPct/100)})`;
+  document.getElementById('levelVal').textContent = state.level;
+  if (!state.won && state.clean >= GOAL_CLEAN){ state.won = true; showVictory(); }
+}
+
+let toastTO = null;
+function toast(text, type, dur){
+  const old = document.querySelector('.toast');
+  if (old) old.remove();
+  const t = el(`<div class="toast ${type||''}">${text}</div>`);
+  document.body.appendChild(t);
+  if (toastTO) clearTimeout(toastTO);
+  toastTO = setTimeout(() => t.remove(), dur || 3000);
+}
+
+function addXP(n){
+  state.xp += n;
+  while (state.xp >= state.level * 100){
+    state.xp -= state.level * 100;
+    state.level++;
+    toast(`⭐ Уровень ${state.level}! Открыты новые цели`, 'success', 2500);
+    sfxBuy();
+    if (state.level >= 10) unlockAchv('level_10');
+  }
+  updateHeader();
+}
+
+function unlockAchv(id){
+  if (state.achievements.includes(id)) return;
+  const a = ACHIEVEMENTS.find(x => x.id === id);
+  if (!a) return;
+  state.achievements.push(id);
+  toast(`${a.emoji} Достижение: ${a.name}`, 'success', 2500);
+  sfxBuy();
+  save();
+}
+
+function checkAchv(){
+  if (state.callsTotal >= 1) unlockAchv('first_call');
+  if (state.winsTotal >= 1) unlockAchv('first_win');
+  if (state.lossesTotal >= 1) unlockAchv('first_loss');
+  if (state.arrestsTotal >= 1) unlockAchv('first_arrest');
+  if (state.hackedDevices.length >= 1) unlockAchv('first_hack');
+  if (state.hackedDevices.length >= HACK_TARGETS.length) unlockAchv('hack_all');
+  if (state.totalLoot >= 100000) unlockAchv('loot_100k');
+  if (state.totalLoot >= 1000000) unlockAchv('loot_1m');
+  if (state.clean >= 1000000) unlockAchv('clean_1m');
+  if (state.clean >= 10000000) unlockAchv('clean_10m');
+  if (state.clean >= 100000000) unlockAchv('clean_100m');
+  if (state.wonVictims.some(id => id.startsWith('colonel_'))) unlockAchv('colonel_win');
+  if (state.wonVictims.some(id => id.startsWith('oligarch_'))) unlockAchv('oligarch_win');
+  if (state.wonVictims.length >= Math.floor(TARGETS.length / 2)) unlockAchv('half_wins');
+  if (state.wonVictims.length >= TARGETS.length) unlockAchv('all_wins');
+}
+
+/* ============ TARGETS RENDER ============ */
+function renderTargets(){
+  const list = document.getElementById('targetList');
+  list.innerHTML = '';
+
+  // Фильтрация
+  let filtered = TARGETS;
+  if (currentFilter === 'available'){
+    filtered = TARGETS.filter(t => t.unlockLevel <= state.level && !state.wonVictims.includes(t.id));
+  } else if (currentFilter === 'done'){
+    filtered = TARGETS.filter(t => state.wonVictims.includes(t.id));
+  } else if (currentFilter === 'locked'){
+    filtered = TARGETS.filter(t => t.unlockLevel > state.level);
+  }
+
+  // Ограничиваем показ 30 карточками для доступных/заблокированных, но не для "все"
+  if (currentFilter !== 'all' && filtered.length > 30){
+    filtered = filtered.slice(0, 30);
+  }
+
+  // Подзаголовок
+  const sub = document.getElementById('callsSub');
+  if (sub){
+    const unlocked = TARGETS.filter(t => t.unlockLevel <= state.level).length;
+    const won = state.wonVictims.length;
+    sub.textContent = `Разведено: ${won} / ${TARGETS.length} · Доступно: ${unlocked}`;
+  }
+
+  if (filtered.length === 0){
+    list.innerHTML = '<div style="text-align:center;color:var(--muted);padding:24px;font-size:12px">Нет целей в этой категории</div>';
+    return;
+  }
+
+  for (const t of filtered){
+    const callCost = 15 + t.difficulty * 5;
+    const canCall = state.energy >= callCost;
+    const won = state.wonVictims.includes(t.id);
+    const locked = state.level < t.unlockLevel;
+    const lootBoost = 1 + getUpg('scripts') * 0.15;
+    const callLoot = Math.floor(t.baseLoot * lootBoost);
+    const card = el(`
+      <div class="target-card ${locked ? 'locked' : ''} ${won ? 'done' : ''}" style="--c:${t.c}" data-req="${t.unlockLevel}">
+        <div class="t-header">
+          <div class="t-avatar">${t.icon}</div>
+          <div class="t-info">
+            <div class="t-name">${t.name} ${won ? '✓' : ''}</div>
+            <div class="t-age">${t.age} лет · ${'⭐'.repeat(t.difficulty)}</div>
+          </div>
+          <div class="t-loot">₽${fmt(callLoot)}<small>~</small></div>
+        </div>
+        <div class="t-story">${t.story}</div>
+        <div class="t-meta">
+          <span>Доверие: ${t.minTrust}%</span>
+          <span>⚡ ${callCost}</span>
+        </div>
+        ${!locked ? `<button class="t-action ${canCall ? '' : 'disabled'}">📞 Позвонить · ⚡${callCost}</button>` : ''}
+      </div>
+    `);
+    if (!locked) card.querySelector('.t-action').addEventListener('click', () => startCall(t, callCost));
+    list.appendChild(card);
+  }
+}
+
+function renderHistory(){
+  const list = document.getElementById('historyList');
+  list.innerHTML = '';
+  if (state.history.length === 0){
+    list.innerHTML = '<div style="text-align:center;color:var(--muted);padding:16px;font-size:12px">Пока ни одного дела</div>';
+    return;
+  }
+  const recent = state.history.slice(-6).reverse();
+  for (const h of recent){
+    list.appendChild(el(`
+      <div class="history-item">
+        <div class="h-icon">${h.icon}</div>
+        <div class="h-info">
+          <div class="h-name">${h.name}</div>
+          <div class="h-meta">"${h.quote}"</div>
+        </div>
+        <div class="h-loot ${h.loot > 0 ? '' : 'zero'}">${h.loot > 0 ? '+' : ''}₽${fmt(h.loot)}</div>
+      </div>
+    `));
+  }
+}
+
+/* ============ CALL ============ */
+function startCall(target, cost){
+  if (state.energy < cost){ toast('⚡ Недостаточно энергии', 'warn'); return; }
+  state.energy -= cost;
+  updateHeader();
+  initAudio();
+  activeCall = {
+    target, step: 0,
+    trust: Math.max(5, 15 + getUpg('voice') * 3 - Math.floor(state.level * 1.5)),
+    log: []
+  };
+  showCallScreen();
+}
+
+function showCallScreen(){
+  document.querySelectorAll('.call-screen, .final-stage').forEach(el => el.remove());
+  const t = activeCall.target;
+  const screen = el(`
+    <div class="call-screen">
+      <div class="call-header" style="--c:${t.c}">
+        <div class="call-avatar ringing">${t.icon}</div>
+        <div class="call-info">
+          <div class="call-name">${t.name}</div>
+          <div class="call-status"><span class="dot"></span> Доверие ${activeCall.trust}%</div>
+        </div>
+        <div class="call-timer" id="callTimer">00:00</div>
+      </div>
+      <div class="trust-bar-wrap">
+        <span>Доверие</span>
+        <div class="trust-bar"><div class="trust-fill" id="trustFill" style="transform:scaleX(${activeCall.trust/100})"></div></div>
+        <span class="trust-val" id="trustVal">${activeCall.trust}%</span>
+      </div>
+      <div class="chat-log" id="chatLog"></div>
+      <div class="choices-wrap" id="choicesWrap"></div>
+    </div>
+  `);
+  document.body.appendChild(screen);
+  const startTime = Date.now();
+  setInterval(() => {
+    const elapsed = Math.floor((Date.now() - startTime) / 1000);
+    const timer = document.getElementById('callTimer');
+    if (timer){
+      const m = String(Math.floor(elapsed / 60)).padStart(2, '0');
+      const s = String(elapsed % 60).padStart(2, '0');
+      timer.textContent = m + ':' + s;
+    }
+  }, 1000);
+  sfxRing();
+  addMessage('them', t.opening);
+  setTimeout(() => showChoices(), 900);
+}
+
+function addMessage(who, text){
+  const log = document.getElementById('chatLog');
+  if (!log) return;
+  const msg = el(`<div class="chat-msg ${who}">${text}</div>`);
+  log.appendChild(msg);
+  log.scrollTop = log.scrollHeight;
+  if (who === 'them') sfxMsg();
+}
+
+function showTypingThen(callback, delay){
+  const log = document.getElementById('chatLog');
+  if (!log) return;
+  const typing = el(`<div class="chat-msg typing"></div>`);
+  log.appendChild(typing);
+  log.scrollTop = log.scrollHeight;
+  setTimeout(() => { typing.remove(); callback(); }, delay || 1200);
+}
+
+function showChoices(){
+  const wrap = document.getElementById('choicesWrap');
+  if (!wrap) return;
+  wrap.innerHTML = '';
+  const d = activeCall.target.dialogues[activeCall.step];
+  if (!d){ goToFinalScheme(); return; }
+  d.ch.forEach((c, i) => {
+    const btn = el(`<button class="choice-btn">${c.t}</button>`);
+    btn.addEventListener('click', () => selectChoice(c));
+    wrap.appendChild(btn);
+  });
+}
+
+function selectChoice(choice){
+  const wrap = document.getElementById('choicesWrap');
+  if (wrap) wrap.innerHTML = '<div style="text-align:center;color:var(--muted);font-size:12px;padding:10px">...</div>';
+  addMessage('me', choice.t);
+
+  let delta = choice.trust;
+  if (choice.f) delta -= 10;
+  activeCall.trust = Math.max(0, Math.min(100, activeCall.trust + delta));
+
+  setTimeout(() => {
+    const trustFill = document.getElementById('trustFill');
+    const trustVal = document.getElementById('trustVal');
+    if (trustFill) trustFill.style.transform = `scaleX(${activeCall.trust/100})`;
+    if (trustVal) trustVal.textContent = activeCall.trust + '%';
+  }, 100);
+
+  if (activeCall.trust < 10){ setTimeout(() => failCall(), 800); return; }
+
+  const t = activeCall.target;
+  const isLastStep = activeCall.step >= t.dialogues.length - 1;
+
+  showTypingThen(() => {
+    let reaction;
+    if (activeCall.trust > 70) reaction = 'Хорошо, я вас понял(а)...';
+    else if (activeCall.trust > 40) reaction = 'Хм. Ладно, а дальше?';
+    else reaction = 'Мне это не нравится. Но слушаю.';
+
+    if (isLastStep){
+      addMessage('them', reaction + ' Что мне нужно сделать?');
+      activeCall.step++;
+      setTimeout(() => {
+        if (activeCall.trust >= t.minTrust) goToFinalScheme();
+        else failCall();
+      }, 800);
+    } else {
+      addMessage('them', reaction);
+      activeCall.step++;
+      setTimeout(() => {
+        const nextD = t.dialogues[activeCall.step];
+        if (nextD){
+          showTypingThen(() => {
+            addMessage('them', nextD.them);
+            setTimeout(() => showChoices(), 400);
+          }, 900);
+        } else {
+          if (activeCall.trust >= t.minTrust) goToFinalScheme();
+          else failCall();
+        }
+      }, 500);
+    }
+  }, 1400);
+}
+
+function goToFinalScheme(){
+  const t = activeCall.target;
+  if (activeCall.trust < t.minTrust){ failCall(); return; }
+  document.querySelector('.call-screen')?.remove();
+  if (t.finalScheme === 'code') showFinalCodeScheme(t);
+  else if (t.finalScheme === 'transfer') showFinalTransferScheme(t);
+}
+
+function showFinalCodeScheme(t){
+  const code = Array.from({length: 6}, () => Math.floor(Math.random() * 10));
+  let input = [];
+  const screen = el(`
+    <div class="final-stage">
+      <div class="final-title">📱 Код из СМС</div>
+      <div class="final-sub">${t.finalIntro}<br>Повтори код из СМС.</div>
+      <div class="chat-log" style="max-height:120px;margin-bottom:12px">
+        <div class="chat-msg system">💬 СМС: Никому не сообщайте. Код: ${code.join('')}</div>
+      </div>
+      <div class="mg-code-display" id="codeDisplay">
+        ${[0,1,2,3,4,5].map(i => `<div class="code-digit" data-i="${i}">·</div>`).join('')}
+      </div>
+      <div class="mg-numpad" id="numpad">
+        ${[1,2,3,4,5,6,7,8,9,'СБРОС',0,'ОК'].map(n => `<button class="numpad-btn" data-n="${n}">${n}</button>`).join('')}
+      </div>
+    </div>
+  `);
+  document.body.appendChild(screen);
+  const digits = screen.querySelectorAll('.code-digit');
+  digits[0].classList.add('active');
+  function updateDisplay(){
+    digits.forEach((d, i) => {
+      d.classList.remove('active', 'filled');
+      if (input[i] !== undefined){ d.textContent = input[i]; d.classList.add('filled'); }
+      else { d.textContent = '·'; if (i === input.length) d.classList.add('active'); }
+    });
+  }
+  screen.querySelectorAll('.numpad-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const n = btn.dataset.n;
+      if (n === 'СБРОС'){ input = []; updateDisplay(); return; }
+      if (n === 'ОК'){
+        if (input.length !== 6){ toast('Введите все 6 цифр', 'warn'); return; }
+        const ok = code.every((c, i) => c === input[i]);
+        if (ok) successCall(); else { toast('❌ Код неверный!', 'warn'); failCall(); }
+        return;
+      }
+      if (input.length >= 6) return;
+      input.push(parseInt(n));
+      updateDisplay();
+      if (input.length === 6){
+        setTimeout(() => {
+          const ok = code.every((c, i) => c === input[i]);
+          if (ok) successCall();
+          else { toast('❌ Код неверный!', 'warn'); failCall(); }
+        }, 400);
+      }
+    });
+  });
+}
+
+function showFinalTransferScheme(t){
+  const amount = t.baseLoot + Math.floor(Math.random() * t.baseLoot * 0.4);
+  let taps = 0;
+  const target_taps = 8 + t.difficulty * 2;
+  let timeLeft = 8;
+  const screen = el(`
+    <div class="final-stage">
+      <div class="final-title">💸 Перевод</div>
+      <div class="final-sub">${t.finalIntro}<br>Успей, пока она не передумала!</div>
+      <div class="transfer-screen">
+        <div class="transfer-title">Перевод на «безопасный счёт»</div>
+        <div class="transfer-amount">₽ ${fmt(amount)}</div>
+        <div class="transfer-card">${'★'.repeat(4)} ${'★'.repeat(4)} ${Math.floor(Math.random()*9000)+1000}</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:12px" id="tapCount">0 / ${target_taps}</div>
+        <div class="mg-timer" style="color:var(--purple)" id="transferTimer">8.0</div>
+        <button class="transfer-tap" id="transferTap">ПОДТВЕРДИТЬ<span class="hint">Нажимай как можно быстрее</span></button>
+      </div>
+    </div>
+  `);
+  document.body.appendChild(screen);
+  const tapBtn = screen.querySelector('#transferTap');
+  const counter = screen.querySelector('#tapCount');
+  const timerEl = screen.querySelector('#transferTimer');
+  const startTime = Date.now();
+  let running = true;
+  function tick(){
+    if (!running) return;
+    timeLeft = 8 - (Date.now() - startTime) / 1000;
+    timerEl.textContent = Math.max(0, timeLeft).toFixed(1);
+    if (timeLeft <= 0){ running = false; if (taps >= target_taps) successCall(); else failCall(); }
+    else requestAnimationFrame(tick);
+  }
+  tick();
+  tapBtn.addEventListener('click', () => {
+    if (!running) return;
+    taps++;
+    counter.textContent = `${taps} / ${target_taps}`;
+    beep(1400, .02, 'sine', .02);
+    if (taps >= target_taps){ running = false; setTimeout(() => successCall(), 300); }
+  });
+}
+
+function successCall(){
+  const t = activeCall.target;
+  const scriptBonus = 1 + getUpg('scripts') * 0.15;
+  const trustBonus = 0.7 + (activeCall.trust - t.minTrust) / 100 * 0.6;
+  const loot = Math.floor(t.baseLoot * scriptBonus * Math.max(0.7, trustBonus) * (0.9 + Math.random() * 0.4));
+  state.money += loot;
+  state.winsTotal++;
+  state.callsTotal++;
+  state.totalLoot += loot;
+  if (!state.wonVictims.includes(t.id)) state.wonVictims.push(t.id);
+  state.history.push({ name: t.name, icon: t.icon, quote: t.successQuote, loot });
+  addXP(20 + Math.floor(loot / 1000));
+  save();
+  checkAchv();
+  showResultScreen(true, loot, t, t.successQuote);
+}
+
+function failCall(){
+  const t = activeCall.target;
+  state.lossesTotal++;
+  state.callsTotal++;
+  state.suspicion = Math.min(100, state.suspicion + 8 + Math.floor(Math.random() * 7));
+  state.history.push({ name: t.name, icon: t.icon, quote: t.failureQuote, loot: 0 });
+  save();
+  checkAchv();
+  showResultScreen(false, 0, t, t.failureQuote);
+}
+
+function showResultScreen(win, loot, t, quote){
+  document.querySelectorAll('.final-stage').forEach(el => el.remove());
+  const screen = el(`
+    <div class="final-stage" style="justify-content:center">
+      <div class="result-screen">
+        <span class="result-emoji">${win ? '💰' : '💀'}</span>
+        <div class="result-title ${win ? 'win' : 'lose'}">${win ? 'УСПЕХ!' : 'ПРОВАЛ'}</div>
+        <div class="result-sub">${win ? 'Жертва попалась' : 'Жертва распознала обман'}</div>
+        <div class="result-loot ${loot > 0 ? '' : 'zero'}">${loot > 0 ? '+' : ''}₽${fmt(loot)}</div>
+        <div class="result-quote">"${quote}"</div>
+        <button class="result-continue" id="resultContinue">Продолжить</button>
+      </div>
+    </div>
+  `);
+  document.body.appendChild(screen);
+  if (win){ if (loot > 100000) sfxBigWin(); else sfxWin(); } else sfxLose();
+  screen.querySelector('#resultContinue').addEventListener('click', () => {
+    screen.remove();
+    activeCall = null;
+    updateHeader();
+    renderTargets();
+    renderHistory();
+    if (state.suspicion >= 100) arrest();
+  });
+  updateHeader();
+}
+
+/* ============ HACK TAB ============ */
+function renderHack(){
+  const list = document.getElementById('hackList');
+  list.innerHTML = '';
+  for (const d of HACK_TARGETS){
+    const locked = state.level < d.unlockLevel;
+    const done = state.hackedDevices.includes(d.id);
+    const skillBonus = 1 + getUpg('hack_skill') * 0.15;
+    const reward = Math.floor(d.baseReward * skillBonus);
+    const card = el(`
+      <div class="hack-card ${locked ? 'locked' : ''}" style="--c:${d.c}" data-req="${d.unlockLevel}">
+        <div class="hack-header">
+          <div class="hack-icon">${d.icon}</div>
+          <div class="hack-info">
+            <div class="hack-name">${d.name} ${done ? '✓' : ''}</div>
+            <div class="hack-def">Защита: <span>${d.defense}</span> · Матрица ${getMatrixSize(d.defense)}×${getMatrixSize(d.defense)}</div>
+          </div>
+          <div class="hack-reward">₽${fmt(reward)}<small>макс.</small></div>
+        </div>
+        <div class="hack-detail">
+          <span>🎯 ${getSeqCount(d.defense)} послед.</span>
+          <span>⏱ ${getTimeLimit(d.defense)}с</span>
+          <span>⚡ ${getHackCost(d)}</span>
+        </div>
+      </div>
+    `);
+    if (!locked) card.addEventListener('click', () => startHack(d));
+    list.appendChild(card);
+  }
+}
+
+function getMatrixSize(defense){
+  if (defense <= 2) return 4;
+  if (defense <= 4) return 5;
+  if (defense <= 6) return 6;
+  return 7;
+}
+function getSeqCount(defense){
+  if (defense <= 2) return 2;
+  if (defense <= 4) return 3;
+  if (defense <= 6) return 4;
+  if (defense <= 8) return 4;
+  return 5;
+}
+function getTimeLimit(defense){
+  if (defense <= 2) return 45;
+  if (defense <= 4) return 40;
+  if (defense <= 6) return 35;
+  if (defense <= 8) return 30;
+  return 25;
+}
+function getHackCost(d){ return 20 + d.defense * 5; }
+
+/* ============ BREACH PROTOCOL ============ */
+const SYMBOLS = ['1C','BD','55','E9','7A','FF','0A','4D','8B','C3'];
+
+function startHack(device){
+  if (state.energy < getHackCost(device)){ toast('⚡ Недостаточно энергии', 'warn'); return; }
+  state.energy -= getHackCost(device);
+  updateHeader();
+  initAudio();
+  sfxClick();
+
+  const size = getMatrixSize(device.defense);
+  const matrix = [];
+  for (let i = 0; i < size; i++){
+    const row = [];
+    for (let j = 0; j < size; j++) row.push(SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)]);
+    matrix.push(row);
+  }
+  const seqCount = getSeqCount(device.defense);
+  const sequences = [];
+  for (let i = 0; i < seqCount; i++){
+    const len = device.defense <= 4 ? 2 : (i < 2 ? 3 : 2);
+    const seq = [];
+    for (let j = 0; j < len; j++) seq.push(SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)]);
+    sequences.push(seq);
+  }
+  activeBP = {
+    device, matrix, sequences, size,
+    mode: Math.random() < 0.5 ? 'row' : 'col',
+    modeIndex: 0,
+    picked: new Set(),
+    buffer: [],
+    currentSeq: 0,
+    timeLeft: getTimeLimit(device.defense),
+    startTime: Date.now(),
+    running: true,
+    resolved: false,
+    timerStarted: false
+  };
+  showBPScreen();
+}
+
+function showBPScreen(){
+  document.querySelectorAll('.bp-stage').forEach(el => el.remove());
+  const { device, matrix, sequences, size, buffer, currentSeq } = activeBP;
+  const targetsHtml = sequences.map((seq, i) => {
+    const cls = i < currentSeq ? 'done' : (i === currentSeq ? 'current' : '');
+    return `<div class="bp-target ${cls}">${seq.map(s => `<span class="bp-seq-sym">${s}</span>`).join('')}</div>`;
+  }).join('');
+  const matrixHtml = matrix.map((row, i) => row.map((sym, j) => {
+    const key = i + ',' + j;
+    const isUsed = activeBP.picked.has(key);
+    const isActive = !isUsed && ((activeBP.mode === 'row' && i === activeBP.modeIndex) || (activeBP.mode === 'col' && j === activeBP.modeIndex));
+    const cls = isUsed ? 'used' : (isActive ? 'active' : '');
+    return `<div class="bp-cell ${cls}" data-i="${i}" data-j="${j}">${sym}</div>`;
+  }).join('')).join('');
+  const bufferHtml = buffer.length > 0
+    ? buffer.map(s => `<span class="bp-buf-sym">${s}</span>`).join('')
+    : '<span class="bp-buf-empty">буфер пуст</span>';
+  const stage = el(`
+    <div class="bp-stage">
+      <div class="bp-hud">
+        <div><div class="bp-hud-label">Устройство</div><div class="bp-hud-val" style="font-size:13px">${device.icon} ${device.name}</div></div>
+        <div style="text-align:right"><div class="bp-hud-label">Прогресс</div><div class="bp-hud-val">${currentSeq} / ${sequences.length}</div></div>
+      </div>
+      <div class="bp-timer" id="bpTimer">${activeBP.timeLeft.toFixed(1)}</div>
+      <div class="bp-targets">${targetsHtml}</div>
+      <div class="bp-matrix" style="grid-template-columns:repeat(${size},1fr)">${matrixHtml}</div>
+      <div class="bp-buffer">${bufferHtml}</div>
+      <div class="bp-hint">${activeBP.mode === 'row' ? `Активна <strong>строка ${activeBP.modeIndex + 1}</strong>` : `Активен <strong>столбец ${activeBP.modeIndex + 1}</strong>`} · Выбирай символы, чтобы собрать последовательности</div>
+      <button class="bp-btn danger" id="bpCancel">Отменить взлом</button>
+    </div>
+  `);
+  document.body.appendChild(stage);
+  stage.querySelectorAll('.bp-cell').forEach(cell => cell.addEventListener('click', () => pickBPCell(parseInt(cell.dataset.i), parseInt(cell.dataset.j))));
+  stage.querySelector('#bpCancel').addEventListener('click', () => {
+    if (activeBP && activeBP.running){ activeBP.running = false; endHack(false); }
+  });
+  if (!activeBP.timerStarted){
+    activeBP.timerStarted = true;
+    const tickBP = () => {
+      if (!activeBP || !activeBP.running) return;
+      const elapsed = (Date.now() - activeBP.startTime) / 1000;
+      activeBP.timeLeft = Math.max(0, getTimeLimit(activeBP.device.defense) - elapsed);
+      const timerEl = document.getElementById('bpTimer');
+      if (timerEl){ timerEl.textContent = activeBP.timeLeft.toFixed(1); if (activeBP.timeLeft < 10) timerEl.classList.add('warn'); }
+      if (activeBP.timeLeft <= 0){ activeBP.running = false; endHack(false); return; }
+      requestAnimationFrame(tickBP);
+    };
+    requestAnimationFrame(tickBP);
+  }
+}
+
+function pickBPCell(i, j){
+  if (!activeBP || !activeBP.running) return;
+  const key = i + ',' + j;
+  if (activeBP.picked.has(key)) return;
+  if (activeBP.mode === 'row' && i !== activeBP.modeIndex){ sfxLose(); toast('Не в активной строке!', 'warn', 1500); return; }
+  if (activeBP.mode === 'col' && j !== activeBP.modeIndex){ sfxLose(); toast('Не в активном столбце!', 'warn', 1500); return; }
+  const sym = activeBP.matrix[i][j];
+  activeBP.picked.add(key);
+  activeBP.buffer.push(sym);
+  sfxHack();
+  if (activeBP.mode === 'row'){ activeBP.mode = 'col'; activeBP.modeIndex = j; }
+  else { activeBP.mode = 'row'; activeBP.modeIndex = i; }
+  while (activeBP.currentSeq < activeBP.sequences.length){
+    const seq = activeBP.sequences[activeBP.currentSeq];
+    if (activeBP.buffer.length >= seq.length){
+      const tail = activeBP.buffer.slice(-seq.length);
+      if (tail.every((s, idx) => s === seq[idx])){
+        activeBP.currentSeq++;
+        sfxBreach();
+        if (activeBP.currentSeq >= activeBP.sequences.length){ activeBP.running = false; endHack(true); return; }
+      } else break;
+    } else break;
+  }
+  showBPScreen();
+}
+
+function endHack(success){
+  if (!activeBP || activeBP.resolved) return;
+  activeBP.resolved = true;
+  const device = activeBP.device;
+  const completed = activeBP.currentSeq;
+  const total = activeBP.sequences.length;
+  document.querySelectorAll('.bp-stage').forEach(el => el.remove());
+  let loot = 0;
+  if (completed > 0){
+    const skillBonus = 1 + getUpg('hack_skill') * 0.15;
+    loot = Math.floor(device.baseReward * skillBonus * (completed / total));
+    if (success) loot = Math.floor(loot * 1.3);
+    state.money += loot;
+    state.totalLoot += loot;
+    state.winsTotal++;
+    state.callsTotal += completed;
+    addXP(10 + completed * 15 + device.defense * 10);
+    if (!state.hackedDevices.includes(device.id) && success) state.hackedDevices.push(device.id);
+    if (success) unlockAchv('first_breach');
+    state.history.push({ name: device.name, icon: '💻', quote: success ? `Полный взлом. ${completed}/${total} последовательностей.` : `Взлом прерван. ${completed}/${total} последовательностей.`, loot });
+  } else {
+    state.lossesTotal++;
+    state.callsTotal++;
+    state.suspicion = Math.min(100, state.suspicion + 8 + Math.floor(Math.random() * 7));
+    state.history.push({ name: device.name, icon: '💻', quote: 'Взлом провалился. Следы остались.', loot: 0 });
+  }
+  save();
+  checkAchv();
+  const screen = el(`
+    <div class="final-stage" style="justify-content:center">
+      <div class="result-screen">
+        <span class="result-emoji">${success ? '🔓' : '💻'}</span>
+        <div class="result-title ${loot > 0 ? 'win' : 'lose'}">${success ? 'ВЗЛОМ!' : (loot > 0 ? 'ЧАСТИЧНО' : 'ПРОВАЛ')}</div>
+        <div class="result-sub">${success ? 'Устройство полностью скомпрометировано' : (loot > 0 ? `Собрано ${completed}/${total} последовательностей` : 'Защита сработала')}</div>
+        <div class="result-loot ${loot > 0 ? '' : 'zero'}">${loot > 0 ? '+' : ''}₽${fmt(loot)}</div>
+        <button class="result-continue" id="bpDone">Продолжить</button>
+      </div>
+    </div>
+  `);
+  document.body.appendChild(screen);
+  if (success) sfxBigWin(); else if (loot > 0) sfxWin(); else sfxLose();
+  screen.querySelector('#bpDone').addEventListener('click', () => {
+    screen.remove();
+    activeBP = null;
+    updateHeader();
+    renderHack();
+    renderHistory();
+    if (state.suspicion >= 100) arrest();
+  });
+  activeBP = null;
+  updateHeader();
+}
+
+/* ============ ARREST ============ */
+function arrest(){
+  state.arrestsTotal++;
+  state.suspicion = 0;
+  const lost = Math.floor(state.money * 0.5);
+  state.money -= lost;
+  state.energy = Math.max(20, state.energy - 30);
+  sfxAlarm();
+  const modal = el(`
+    <div class="arrest-overlay">
+      <div class="arrest-card">
+        <div class="arrest-emoji">🚔</div>
+        <div class="arrest-title">АРЕСТ!</div>
+        <div class="arrest-text">Полиция накрыла колл-центр.<br><br>Потеряно: <strong style="color:var(--red)">₽${fmt(lost)}</strong><br>Энергия −30</div>
+        <button class="arrest-btn" id="arrestOk">Принять</button>
+      </div>
+    </div>
+  `);
+  document.body.appendChild(modal);
+  modal.querySelector('#arrestOk').addEventListener('click', () => {
+    modal.remove();
+    updateHeader();
+    renderTargets();
+    renderHack();
+    save();
+  });
+  state.history.push({ name:'АРЕСТ', icon:'🚔', quote:'Полиция накрыла колл-центр', loot: -lost });
+  updateHeader();
+  checkAchv();
+  save();
+}
+
+/* ============ UPGRADES ============ */
+function renderUpgrades(){
+  const list = document.getElementById('upgradesList');
+  list.innerHTML = '';
+  for (const u of UPGRADES){
+    const lvl = getUpg(u.id);
+    const cost = Math.floor(u.baseCost * Math.pow(u.mult, lvl));
+    const maxed = lvl >= u.max;
+    const canBuy = !maxed && state.money >= cost;
+    const card = el(`
+      <div class="card">
+        <div class="upg-head">
+          <div class="upg-icon">${u.icon}</div>
+          <div class="upg-title"><div class="upg-name">${u.name}</div><div class="upg-lvl">Ур. ${lvl}/${u.max} · ${u.desc}</div></div>
+        </div>
+        <button class="upg-buy ${maxed ? 'maxed' : ''}" ${canBuy ? '' : 'disabled'} data-id="${u.id}">${maxed ? '✓ МАКС' : '₽' + fmt(cost)}</button>
+      </div>
+    `);
+    if (canBuy) card.querySelector('.upg-buy').addEventListener('click', () => buyUpgrade(u.id));
+    list.appendChild(card);
+  }
+}
+function buyUpgrade(id){
+  const u = UPGRADES.find(x => x.id === id);
+  const lvl = getUpg(id);
+  if (lvl >= u.max) return;
+  const cost = Math.floor(u.baseCost * Math.pow(u.mult, lvl));
+  if (state.money < cost) return;
+  state.money -= cost;
+  state.upgrades[id]++;
+  sfxBuy();
+  toast(`✅ ${u.name} → ур. ${state.upgrades[id]}`, 'success');
+  updateHeader();
+  renderUpgrades();
+  save();
+}
+
+/* ============ LAUNDRY ============ */
+function renderLaundry(){
+  const content = document.getElementById('laundryContent');
+  const lossPct = Math.max(5, 25 - getUpg('laundry_up') * 2);
+  content.innerHTML = `
+    <div class="card">
+      <div class="upg-name" style="margin-bottom:8px">🧺 Прачечная</div>
+      <div class="upg-desc" style="margin-bottom:12px">Отмывание грязных денег. Теряешь процент, но выходишь «чистым».</div>
+      <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px">
+        <span>Грязные: <strong style="color:var(--gold)">₽${fmt(state.money)}</strong></span>
+        <span>Чистые: <strong style="color:var(--green)">₽${fmt(state.clean)}</strong></span>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:12px">Потери: ${lossPct}% · Подозрение снизится на 5-15</div>
+      <button class="upg-buy" id="launderBtn" ${state.money > 0 ? '' : 'disabled'} style="padding:14px;font-size:14px">💰 Отмыть всё</button>
+    </div>
+    <div class="disclaimer">Отмывание денег — тяжкое преступление. В реальности это статья УК.</div>
+  `;
+  if (state.money > 0){
+    content.querySelector('#launderBtn').addEventListener('click', () => {
+      const loss = Math.max(5, 25 - getUpg('laundry_up') * 2);
+      const cleanAmount = Math.floor(state.money * (1 - loss / 100));
+      state.clean += cleanAmount;
+      state.money = 0;
+      state.suspicion = Math.max(0, state.suspicion - (5 + Math.random() * 10));
+      sfxBuy();
+      toast(`🧺 Отмыто ₽${fmt(cleanAmount)} · −${loss}%`, 'success', 3000);
+      updateHeader();
+      renderLaundry();
+      checkAchv();
+      save();
+    });
+  }
+}
+
+/* ============ PROFILE ============ */
+function renderProfile(){
+  const content = document.getElementById('profileContent');
+  content.innerHTML = `
+    <div class="stats-grid">
+      <div class="stat-box"><div class="stat-label">Уровень</div><div class="stat-val cyan">${state.level}</div></div>
+      <div class="stat-box"><div class="stat-label">Опыт</div><div class="stat-val">${state.xp} / ${state.level * 100}</div></div>
+      <div class="stat-box"><div class="stat-label">Звонков</div><div class="stat-val">${state.callsTotal}</div></div>
+      <div class="stat-box"><div class="stat-label">Успешных</div><div class="stat-val green">${state.winsTotal}</div></div>
+      <div class="stat-box"><div class="stat-label">Провалов</div><div class="stat-val red">${state.lossesTotal}</div></div>
+      <div class="stat-box"><div class="stat-label">Арестов</div><div class="stat-val red">${state.arrestsTotal}</div></div>
+      <div class="stat-box"><div class="stat-label">Всего добыто</div><div class="stat-val">₽${fmt(state.totalLoot)}</div></div>
+      <div class="stat-box"><div class="stat-label">Чистых</div><div class="stat-val green">₽${fmt(state.clean)}</div></div>
+      <div class="stat-box"><div class="stat-label">Взломано</div><div class="stat-val cyan">${state.hackedDevices.length}/${HACK_TARGETS.length}</div></div>
+      <div class="stat-box"><div class="stat-label">Разведено</div><div class="stat-val">${state.wonVictims.length}/${TARGETS.length}</div></div>
+    </div>
+    <div class="section-h">🏅 Достижения (${state.achievements.length}/${ACHIEVEMENTS.length})</div>
+    <div class="achv-grid">
+      ${ACHIEVEMENTS.map(a => {
+        const u = state.achievements.includes(a.id);
+        return `<div class="achv-box ${u ? 'unlocked' : 'locked'}"><div class="achv-emoji">${u ? a.emoji : '🔒'}</div><div class="achv-name">${u ? a.name : '???'}</div></div>`;
+      }).join('')}
+    </div>
+    <button class="upg-buy" style="margin-top:16px;background:linear-gradient(180deg,#f87171,#dc2626);color:white;padding:14px;font-size:14px" id="resetBtn">🔄 Начать заново</button>
+    <div class="disclaimer"><strong>ВАЖНО:</strong> эта игра — сатирическая пародия. Реальные мошенники — преступники.<br>Если вам звонят «из банка» — сбросьте и перезвоните по номеру с карты.<br>Никогда не называйте коды из СМС.</div>
+  `;
+  content.querySelector('#resetBtn').addEventListener('click', () => {
+    if (confirm('Начать заново? Весь прогресс будет утерян.')){
+      localStorage.removeItem(SAVE_KEY);
+      location.reload();
+    }
+  });
+}
+
+/* ============ VICTORY ============ */
+function showVictory(){
+  sfxBigWin();
+  const modal = el(`
+    <div class="modal-overlay" style="position:fixed;inset:0;background:rgba(0,0,0,0.92);display:flex;align-items:center;justify-content:center;z-index:400;padding:20px">
+      <div class="victory-card">
+        <div class="victory-emoji">🏆</div>
+        <div class="victory-title">100 МИЛЛИОНОВ ₽</div>
+        <div class="victory-sub">Ты отмыл сто миллионов и вышел из игры.<br>Но осадок остался...</div>
+        <div class="victory-stats"><div>Уровень<strong>${state.level}</strong></div><div>Разведено<strong>${state.wonVictims.length}/${TARGETS.length}</strong></div><div>Взломано<strong>${state.hackedDevices.length}</strong></div></div>
+        <div class="disclaimer" style="padding:10px;margin-bottom:10px">Настоящие мошенники — преступники. Эта игра — сатира.</div>
+        <button class="upg-buy" onclick="location.reload()" style="padding:14px;font-size:14px">Начать заново</button>
+      </div>
+    </div>
+  `);
+  document.body.appendChild(modal);
+}
+
+/* ============ TABS ============ */
+function switchTab(tab){
+  currentTab = tab;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.id === 'tab-' + tab));
+  if (tab === 'calls'){ renderTargets(); renderHistory(); }
+  if (tab === 'hack') renderHack();
+  if (tab === 'upgrades') renderUpgrades();
+  if (tab === 'laundry') renderLaundry();
+  if (tab === 'profile') renderProfile();
+}
+
+/* ============ LOOP ============ */
+function tick(t){
+  requestAnimationFrame(tick);
+  const dt = Math.min((t - lastT) / 1000, 1);
+  lastT = t;
+  energyTimer += dt;
+  if (energyTimer > 8){
+    energyTimer = 0;
+    if (state.energy < 100){ state.energy = Math.min(100, state.energy + 2); updateHeader(); }
+  }
+  if (Math.random() < dt * 0.015){ state.suspicion = Math.min(100, state.suspicion + 1); updateHeader(); }
+  if (state.suspicion >= 100 && !document.querySelector('.arrest-overlay') && !activeCall && !activeBP){ arrest(); }
+}
+
+/* ============ INIT ============ */
+function init(){
+  const saved = load();
+  state = saved || initState();
+  if (!state.upgrades) state.upgrades = { voice:0, vpn:0, spoof:0, scripts:0, database:0, laundry_up:0, hack_skill:0 };
+  if (!state.wonVictims) state.wonVictims = [];
+  if (!state.hackedDevices) state.hackedDevices = [];
+
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => { initAudio(); switchTab(btn.dataset.tab); });
+  });
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      currentFilter = btn.dataset.filter;
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b === btn));
+      renderTargets();
+    });
+  });
+
+  renderTargets();
+  renderHistory();
+  updateHeader();
+  save();
+  requestAnimationFrame(tick);
+  window.addEventListener('beforeunload', save);
+  document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
+
+  setTimeout(() => {
+    toast(`📞 В игре ${TARGETS.length} персонажей. Игра-пародия.`, 'warn', 5000);
+  }, 600);
+}
+
+init();
+
+})();
+</script>
+</body>
+</html>
